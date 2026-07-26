@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>划算 — 跳转中</title>
+  <meta http-equiv="refresh" content="0; url=cashflow.html">
+  <link rel="canonical" href="cashflow.html">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #2D4A3E;
+      background: #FAFAF7;
+    }
+    .redirect-card {
+      text-align: center;
+      padding: 48px 32px;
+    }
+    .redirect-card__title {
+      font-size: 28px;
+      font-weight: 500;
+      margin: 0 0 8px;
+      letter-spacing: 0.05em;
+    }
+    .redirect-card__title span {
+      color: #B8935A;
+    }
+    .redirect-card__desc {
+      font-size: 14px;
+      color: #8A8A8A;
+      margin: 0 0 24px;
+    }
+    .redirect-card__link {
+      display: inline-block;
+      padding: 10px 24px;
+      border: 1px solid #2D4A3E;
+      border-radius: 4px;
+      color: #2D4A3E;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 200ms ease;
+    }
+    .redirect-card__link:hover {
+      background: #2D4A3E;
+      color: #FAFAF7;
+    }
+  </style>
+</head>
+<body>
+  <div class="redirect-card">
+    <h1 class="redirect-card__title">划<span>算</span></h1>
+    <p class="redirect-card__desc">正在跳转到现金流页…</p>
+    <a class="redirect-card__link" href="cashflow.html">手动跳转 →</a>
+  </div>
+  <script>
+    // 兜底：meta refresh 失败时用 JS 跳转
+    location.replace('cashflow.html');
+  </script>
+</body>
+</html>

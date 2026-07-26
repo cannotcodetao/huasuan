@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>划算 — 计算器</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script>
+    // CountUp 动画（参考 CountUp.js v2.8.1 简化实现，MIT）
+    function CountUp(target, endVal, options) {
+      this.el = typeof target === 'string' ? document.getElementById(target) : target;
+      this.endVal = endVal;
+      this.options = Object.assign({
+        startVal: 0, duration: 2, useEasing: true, separator: ',',
+        decimal: '.', decimalPlaces: 0, prefix: '', suffix: ''
+      }, options || {});
+      this.duration = this.options.duration * 1000;
+      this.startVal = this.options.startVal;
+      this.frameVal = this.startVal;
+      this.error = '';
+      this.rAF = null;
+      this.startTime = null;
+      if (!this.el) this.error = '[CountUp] target is null';
+    }
+    CountUp.prototype.easeOutExpo = function(t, b, c, d) {
+      return c * (1 - Math.pow(2, -10 * t / d)) + b;
+    };
+    CountUp.prototype.formatNumber = function(n) {
+      var neg = n < 0 ? '-' : '';
+      var fixed = Math.abs(n).toFixed(this.options.decimalPlaces);
+      var parts = fixed.split('.');
+      var intPart = parts[0];
+      var decPart = parts.length > 1 ? this.options.decimal + parts[1] : '';
+      if (this.options.separator) {
+        intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, this.options.separator);
+      }
+      return neg + this.options.prefix + intPart + decPart + this.options.suffix;
+    };
+    CountUp.prototype.printValue = function(n) {
+      if (this.el) this.el.innerHTML = this.formatNumber(n);
+    };
+    CountUp.prototype.count = function(timestamp) {
+      if (!this.startTime) this.startTime = timestamp;
+      var progress = timestamp - this.startTime;
+      if (this.options.useEasing) {
+        this.frameVal = this.easeOutExpo(progress, this.startVal, this.endVal - this.startVal, this.duration);
+      } else {
+        this.frameVal = this.startVal + (this.endVal - this.startVal) * (progress / this.duration);
+      }
+      if (this.endVal >= this.startVal ? this.frameVal > this.endVal : this.frameVal < this.endVal) {
+        this.frameVal = this.endVal;
+      }
+      this.frameVal = Number(this.frameVal.toFixed(this.options.decimalPlaces));
+      this.printValue(this.frameVal);
+      if (progress < this.duration) {
+        this.rAF = requestAnimationFrame(this.count.bind(this));
+      } else {
+        this.printValue(this.endVal);
+        this.rAF = null;
+        if (this.options.onCompleteCallback) this.options.onCompleteCallback();
+      }
+    };
+    CountUp.prototype.start = function(callback) {
+      if (this.error) return;
+      if (callback) this.options.onCompleteCallback = callback;
+      this.startTime = null;
+      this.frameVal = this.startVal;
+      this.rAF = requestAnimationFrame(this.count.bind(this));
+    };
+    CountUp.prototype.reset = function() {
+      if (this.rAF) cancelAnimationFrame(this.rAF);
+      this.startTime = null;
+      this.frameVal = this.startVal;
+      this.printValue(this.startVal);
+    };
+  </script>
+</head>
+<body>
+
+  <!-- 导航（v3.2：现金流独立为 cashflow.html） -->
+  <nav class="nav">
+    <div class="container nav__inner">
+      <a href="cashflow.html" class="nav__logo">划<span>算</span></a>
+      <ul class="nav__menu">
+        <li><a href="cashflow.html">现金流</a></li>
+        <li><a href="plans.html">未来计划</a></li>
+        <li><a href="calculator.html" class="active">消费决策</a></li>
+        <li><a href="methodology.html">方法论</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="section section--tight">
+    <div class="container">
+      <div class="eyebrow fade-up">CALCULATOR</div>
+      <h1 class="section-title fade-up">算清你的消费决策</h1>
+      <p class="section-subtitle fade-up">选择类别，输入参数，实时计算盈亏平衡点。</p>
+
+      <!-- 类别Tabs -->
+      <div class="category-tabs fade-up" style="margin-top:var(--space-xl)">
+        <div class="category-tab active" data-category="car">购车 vs 打车</div>
+        <div class="category-tab" data-category="house">购房 vs 租房</div>
+        <div class="category-tab" data-category="tableware">做饭 vs 外食</div>
+      </div>
+
+      <!-- 计算布局 -->
+      <div class="calc-layout">
+        <!-- 左侧：表单 -->
+        <div class="fade-up">
+          <div id="formSection"></div>
+          <button class="btn btn--ghost" style="margin-top:var(--space-md);width:100%;justify-content:center;" onclick="resetForm()">重置参数</button>
+        </div>
+
+        <!-- 右侧：结果 -->
+        <div class="result-panel fade-up">
+          <div class="result-eyebrow" id="resultLabel">请输入参数</div>
+          <div class="result-number" id="resultNumber">0</div>
+          <div class="result-unit" id="resultUnit"></div>
+          <div class="result-analogy" id="resultAnalogy" style="display:none;"></div>
+          <div class="result-detail" id="resultDetail"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">划算</div>
+      <div class="footer__copy">© 2026 划算 · 决策即品味</div>
+    </div>
+  </footer>
+
+  <script>
+    // ========== 类别配置 ==========
+    const categories = {
+      car: {
+        name: '购车',
+        templateType: 'breakEven',
+        defaults: {
+          price: 120000, useYears: 10, annualInsurance: 4000,
+          annualFuel: 8250, annualMaintenance: 2000, monthlyParking: 400,
+          altUnitPrice: 2.5, loanRate: 0.05, hasLoan: false, loanRatio: 50,
+        }
+      },
+      house: {
+        name: '购房',
+        templateType: 'breakEven',
+        defaults: {
+          price: 2000000, useYears: 50, altUnitPrice: 3000,
+          loanRate: 0.04, hasLoan: false, loanRatio: 70,
+        }
+      },
+      tableware: {
+        name: '餐具',
+        templateType: 'savings',
+        defaults: { price: 30, margin: 70 }
+      }
+    };
+
+    let currentCategory = 'car';
+    let currentValues = {};
+    let countUpInstance = null;
+    let calcTimer = null;
+
+    function init() {
+      // 从URL参数获取类别
+      const params = new URLSearchParams(location.search);
+      const cat = params.get('cat');
+      if (cat && categories[cat]) currentCategory = cat;
+      currentValues = { ...categories[currentCategory].defaults };
+      updateTabs();
+      renderForm();
+      calculate();
+    }
+
+    function updateTabs() {
+      document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.category === currentCategory);
+      });
+    }
+
+    function debouncedCalculate() {
+      if (calcTimer) clearTimeout(calcTimer);
+      calcTimer = setTimeout(calculate, 100);
+    }
+
+    function renderForm() {
+      const form = document.getElementById('formSection');
+      const cat = categories[currentCategory];
+      let html = '';
+
+      if (cat.templateType === 'breakEven') {
+        html += createFormGroup('price', '购置价', '元', 'number');
+        html += createFormGroup('useYears', '使用年限', '年', 'number');
+
+        if (currentCategory === 'car') {
+          html += createFormGroup('annualInsurance', '年保险', '元', 'number');
+          html += createFormGroup('annualFuel', '年油费', '元', 'number');
+          html += createFormGroup('annualMaintenance', '年保养', '元', 'number');
+          html += createFormGroup('monthlyParking', '月停车', '元', 'number');
+          html += createFormGroup('altUnitPrice', '打车单价', '元/公里', 'number');
+        } else if (currentCategory === 'house') {
+          html += createFormGroup('altUnitPrice', '月租金', '元/月', 'number');
+        }
+
+        html += `
+          <div class="form-group">
+            <div class="form-label">
+              <span>是否贷款</span>
+              <span class="value" id="loanToggleLabel">${currentValues.hasLoan ? '是' : '否'}</span>
+            </div>
+            <input type="range" class="form-slider" min="0" max="1" step="1"
+              value="${currentValues.hasLoan ? 1 : 0}"
+              oninput="toggleLoan(this.value)">
+          </div>
+          <div class="loan-section ${currentValues.hasLoan ? 'show' : ''}" id="loanSection">
+            <div class="form-group">
+              <div class="form-label">
+                <span>贷款比例</span>
+                <span class="value" id="loanRatioLabel">${currentValues.loanRatio}%</span>
+              </div>
+              <input type="range" class="form-slider" min="0" max="100" step="5"
+                value="${currentValues.loanRatio}"
+                oninput="updateValue('loanRatio', this.value)">
+            </div>
+            <div class="form-group">
+              <div class="form-label">
+                <span>年利率</span>
+                <span class="value">${(currentValues.loanRate * 100).toFixed(1)}%</span>
+              </div>
+              <input type="range" class="form-slider" min="0" max="10" step="0.1"
+                value="${(currentValues.loanRate * 100).toFixed(1)}"
+                oninput="updateLoanRate(this.value)">
+            </div>
+          </div>
+        `;
+      } else if (cat.templateType === 'savings') {
+        html += createFormGroup('price', '每天用餐成本(做饭)', '元/天', 'number');
+        html += `
+          <div class="form-group">
+            <div class="form-label">
+              <span>外食毛利率</span>
+              <span class="value" id="marginLabel">${currentValues.margin}%</span>
+            </div>
+            <input type="range" class="form-slider" min="60" max="80" step="1"
+              value="${currentValues.margin}"
+              oninput="updateValue('margin', this.value)">
+            <div class="form-hint">毛利率60%-80%，默认70%（餐饮行业平均）</div>
+          </div>
+        `;
+      }
+      form.innerHTML = html;
+    }
+
+    function createFormGroup(key, label, unit, type) {
+      const value = currentValues[key];
+      return `
+        <div class="form-group">
+          <div class="form-label">
+            <span>${label}</span>
+            <span class="value" id="${key}Label">${formatNumber(value)}</span>
+          </div>
+          <input type="${type}" class="form-input" value="${value}"
+            oninput="updateValue('${key}', this.value)">
+          <div class="form-hint">${unit}</div>
+        </div>
+      `;
+    }
+
+    function updateValue(key, value) {
+      currentValues[key] = parseFloat(value) || 0;
+      const label = document.getElementById(key + 'Label');
+      if (label) {
+        if (key === 'loanRatio' || key === 'margin') {
+          label.textContent = value + '%';
+        } else {
+          label.textContent = formatNumber(currentValues[key]);
+        }
+      }
+      debouncedCalculate();
+    }
+
+    function updateLoanRate(value) {
+      currentValues.loanRate = parseFloat(value) / 100;
+      debouncedCalculate();
+    }
+
+    function toggleLoan(value) {
+      currentValues.hasLoan = value === '1';
+      document.getElementById('loanToggleLabel').textContent = currentValues.hasLoan ? '是' : '否';
+      const loanSection = document.getElementById('loanSection');
+      if (loanSection) loanSection.classList.toggle('show', currentValues.hasLoan);
+      debouncedCalculate();
+    }
+
+    // 具象化类比常量（数据来源：国家测绘局 / 中国地理数据）
+    const EARTH_EQUATOR_KM = 40075;       // 地球赤道周长（公里）
+    const CHINA_NORTH_SOUTH_KM = 5500;      // 中国南北跨度（公里，漠河-曾母暗沙）
+    const CHINA_EAST_WEST_KM = 5200;        // 中国东西跨度（公里，帕米尔-乌苏里江）
+
+    function calculate() {
+      const cat = categories[currentCategory];
+      let result = 0, label = '', unit = '', detail = '', decimals = 0;
+      let analogy = '';
+
+      if (cat.templateType === 'breakEven') {
+        if (currentCategory === 'car') {
+          const depreciation = currentValues.price / currentValues.useYears;
+          const loanInterest = currentValues.hasLoan
+            ? currentValues.price * (currentValues.loanRatio / 100) * currentValues.loanRate : 0;
+          const annualCost = depreciation + currentValues.annualInsurance
+            + currentValues.annualFuel + currentValues.annualMaintenance
+            + currentValues.monthlyParking * 12 + loanInterest;
+          result = currentValues.altUnitPrice > 0 ? annualCost / currentValues.altUnitPrice : 0;
+          label = '相当于每年打车';
+          unit = '公里';
+
+          // 具象化类比：绕地球几圈 + 纵穿中国几次
+          if (result > 0) {
+            const earthLoops = result / EARTH_EQUATOR_KM;
+            const cnNorthSouth = result / CHINA_NORTH_SOUTH_KM;
+            analogy = `约绕地球赤道 <strong>${earthLoops.toFixed(2)}</strong> 圈 · ` +
+              `纵穿中国 <strong>${cnNorthSouth.toFixed(1)}</strong> 次`;
+          }
+
+          detail = `
+            <div class="result-detail-row"><span>年折旧</span><span>${fmt(depreciation)}</span></div>
+            <div class="result-detail-row"><span>年保险</span><span>${fmt(currentValues.annualInsurance)}</span></div>
+            <div class="result-detail-row"><span>年油费</span><span>${fmt(currentValues.annualFuel)}</span></div>
+            <div class="result-detail-row"><span>年保养</span><span>${fmt(currentValues.annualMaintenance)}</span></div>
+            <div class="result-detail-row"><span>年停车</span><span>${fmt(currentValues.monthlyParking * 12)}</span></div>
+            ${currentValues.hasLoan ? `<div class="result-detail-row"><span>年贷款利息</span><span>${fmt(loanInterest)}</span></div>` : ''}
+            <div class="result-detail-row result-detail-row--total"><span>年总成本</span><span>${fmt(annualCost)} 元</span></div>
+          `;
+        } else if (currentCategory === 'house') {
+          const months = currentValues.altUnitPrice > 0 ? currentValues.price / currentValues.altUnitPrice : 0;
+          const years = months / 12;
+          result = years;
+          label = `相当于 ${fmt(currentValues.altUnitPrice)} 元/月房租，住`;
+          unit = '年';
+          decimals = 1;
+          detail = `
+            <div class="result-detail-row"><span>购房总价</span><span>${fmt(currentValues.price)}</span></div>
+            <div class="result-detail-row"><span>月租金</span><span>${fmt(currentValues.altUnitPrice)}</span></div>
+            <div class="result-detail-row result-detail-row--total"><span>盈亏平衡</span><span>${Math.round(months)} 个月（约 ${years.toFixed(1)} 年）</span></div>
+          `;
+        }
+      } else if (cat.templateType === 'savings') {
+        const margin = currentValues.margin / 100;
+        const eatOutDailyCost = currentValues.price / (1 - margin);
+        const dailySavings = eatOutDailyCost - currentValues.price;
+        const annualSavings = dailySavings * 365;
+        result = annualSavings;
+        label = '相当于每年省下';
+        unit = '元';
+        detail = `
+          <div class="result-detail-row"><span>做饭日成本</span><span>${fmt(currentValues.price)}</span></div>
+          <div class="result-detail-row"><span>外食毛利率</span><span>${currentValues.margin}%</span></div>
+          <div class="result-detail-row"><span>外食日成本</span><span>${fmt(eatOutDailyCost)}</span></div>
+          <div class="result-detail-row"><span>日节省</span><span>${fmt(dailySavings)}</span></div>
+          <div class="result-detail-row result-detail-row--total"><span>年节省</span><span>${fmt(annualSavings)} 元</span></div>
+        `;
+      }
+      displayResult(result, label, unit, detail, decimals, analogy);
+    }
+
+    function displayResult(value, label, unit, detail, decimals, analogy) {
+      document.getElementById('resultLabel').textContent = label;
+      document.getElementById('resultUnit').textContent = unit;
+      document.getElementById('resultDetail').innerHTML = detail;
+
+      var analogyEl = document.getElementById('resultAnalogy');
+      if (analogy) {
+        analogyEl.innerHTML = analogy;
+        analogyEl.style.display = 'block';
+      } else {
+        analogyEl.style.display = 'none';
+      }
+
+      const target = document.getElementById('resultNumber');
+      const dec = decimals || 0;
+      const finalVal = dec > 0 ? Number(value.toFixed(dec)) : Math.round(value);
+
+      if (countUpInstance && !countUpInstance.error) {
+        if (countUpInstance.rAF) {
+          countUpInstance.endVal = finalVal;
+        } else {
+          countUpInstance.startVal = countUpInstance.frameVal;
+          countUpInstance.endVal = finalVal;
+          countUpInstance.startTime = null;
+          countUpInstance.duration = 1500;
+          countUpInstance.rAF = requestAnimationFrame(countUpInstance.count.bind(countUpInstance));
+        }
+      } else {
+        countUpInstance = new CountUp(target, finalVal, {
+          startVal: 0, duration: 1.5, useEasing: true, separator: ',', decimalPlaces: dec
+        });
+        if (!countUpInstance.error) countUpInstance.start();
+        else target.textContent = formatNumber(finalVal);
+      }
+    }
+
+    function switchCategory(cat) {
+      currentCategory = cat;
+      currentValues = { ...categories[cat].defaults };
+      countUpInstance = null;  // 切换类别时重置，避免 decimalPlaces 残留
+      updateTabs();
+      renderForm();
+      calculate();
+    }
+
+    function resetForm() {
+      currentValues = { ...categories[currentCategory].defaults };
+      renderForm();
+      calculate();
+    }
+
+    function formatNumber(n) {
+      if (typeof n !== 'number') n = parseFloat(n) || 0;
+      return Math.round(n).toLocaleString('zh-CN');
+    }
+    function fmt(n) {
+      if (typeof n !== 'number') n = parseFloat(n) || 0;
+      return Math.round(n).toLocaleString('zh-CN');
+    }
+
+    // 事件绑定
+    document.querySelectorAll('.category-tab').forEach(tab => {
+      tab.addEventListener('click', () => switchCategory(tab.dataset.category));
+    });
+
+    // 滚动动画
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    init();
+  </script>
+</body>
+</html>

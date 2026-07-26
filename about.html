@@ -1,0 +1,110 @@
+ <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>划算 — 关于</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container nav__inner">
+      <a href="index.html" class="nav__logo">划<span>算</span></a>
+      <ul class="nav__menu">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="cashflow.html">现金流</a></li>
+        <li><a href="plans.html">未来计划</a></li>
+        <li><a href="forecast.html">完成预测</a></li>
+        <li><a href="calculator.html">消费决策</a></li>
+        <li><a href="methodology.html">方法论</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 品牌故事 -->
+  <section class="section">
+    <div class="container">
+      <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:var(--space-3xl); align-items:center;">
+        <div class="fade-up">
+          <div class="eyebrow">ABOUT HUASUAN</div>
+          <h1 class="hero-title" style="margin: var(--space-md) 0;">让消费决策<br>有<em style="color:var(--color-primary);font-style:normal;">数据</em>可依</h1>
+          <p style="font-size:18px; color:var(--color-text-muted); line-height:1.7; margin-bottom:var(--space-lg);">
+            划算诞生于一个简单的疑问：买车到底要开多少公里才回本？<br><br>
+            我们发现，大多数消费决策工具要么过于简化（只给一个数字），要么过于复杂（需要填几十个表单）。划算想找到中间地带——用透明公开的公式，给出有冲击力的结果，让决策过程本身成为品味的表达。
+          </p>
+        </div>
+        <div class="fade-up" style="aspect-ratio:4/5; border-radius:var(--radius-lg); overflow:hidden;">
+          <!-- 图片占位：about-story.png
+               建议尺寸：800x1000 (4:5竖图)
+               内容：团队工作场景，或有人在做计算/思考的画面
+               风格：纪实摄影感，不要商业团队照，更像杂志人物特写 -->
+          <div class="image-placeholder">
+            <span class="image-placeholder__label">about-story.png</span>
+            <span class="image-placeholder__hint">800 × 1000 · 品牌故事</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 三个理念 -->
+  <section class="section section--tight">
+    <div class="container">
+      <div class="eyebrow fade-up">PRINCIPLES</div>
+      <h2 class="section-title fade-up">我们相信的三件事</h2>
+      <div class="value-grid">
+        <div class="value-item fade-up">
+          <div class="value-item__num">01</div>
+          <h3 class="value-item__title">透明优于黑箱</h3>
+          <p class="value-item__desc">所有公式公开，所有参数可调。你看到的结果就是真实计算，不是某个算法的"智能估算"。透明建立信任。</p>
+        </div>
+        <div class="value-item fade-up">
+          <div class="value-item__num">02</div>
+          <h3 class="value-item__title">本地优于云端</h3>
+          <p class="value-item__desc">所有计算在你的设备上完成，不需要账号，不上传数据。你的消费决策是你自己的事，不需要让服务器知道。</p>
+        </div>
+        <div class="value-item fade-up">
+          <div class="value-item__num">03</div>
+          <h3 class="value-item__title">品味优于省钱</h3>
+          <p class="value-item__desc">划算不是教你省钱。它是帮你算清楚每一笔大额支出是否值得。决策即品味——知道自己为什么花钱，比少花钱更重要。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 愿景 -->
+  <section class="section section--tight">
+    <div class="container">
+      <div style="max-width:760px; margin:0 auto; text-align:center;" class="fade-up">
+        <div class="eyebrow">VISION</div>
+        <h2 class="section-title" style="margin:var(--space-md) 0;">让每一笔消费<br>都经过思考</h2>
+        <p style="font-size:18px; color:var(--color-text-muted); line-height:1.7;">
+          我们不反对消费。我们反对的是未经思考的消费。<br>
+          划算想做的，是让"算一算"成为消费前的默认动作。<br>
+          不是因为省钱，而是因为<span style="color:var(--color-primary); font-family:var(--font-serif-cn);">知道自己为什么花钱</span>。
+        </p>
+        <div style="margin-top:var(--space-xl);">
+          <a href="calculator.html" class="btn btn--primary">开始计算 →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">划算</div>
+      <div class="footer__copy">© 2026 划算 · 决策即品味</div>
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>

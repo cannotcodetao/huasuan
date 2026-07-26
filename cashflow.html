@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>划算 — 现金流</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <!-- Chart.js v4 CDN（Phase 9 调研结论：68KB gzip，MIT，唯一引入项） -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* ========== 现金流页专用样式（BEM）========== */
+
+    /* 收支项行 */
+    .cashflow__section {
+      margin-bottom: var(--space-xl);
+    }
+    .cashflow__section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-xs);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .cashflow__section-title {
+      font-family: var(--font-serif-cn);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .cashflow__section-total {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    /* 单项行 */
+    .cashflow__item {
+      display: grid;
+      grid-template-columns: 1fr 130px 32px;
+      gap: var(--space-xs);
+      align-items: center;
+      margin-bottom: var(--space-xs);
+    }
+    .cashflow__item--expense {
+      grid-template-columns: 1fr 130px 110px 32px;
+    }
+    .cashflow__item-name,
+    .cashflow__item-amount,
+    .cashflow__item-category {
+      padding: 10px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-family: var(--font-mono);
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 200ms var(--ease-move);
+      width: 100%;
+    }
+    .cashflow__item-name {
+      font-family: var(--font-sans-cn);
+    }
+    .cashflow__item-name:focus,
+    .cashflow__item-amount:focus,
+    .cashflow__item-category:focus {
+      border-color: var(--color-primary);
+    }
+    .cashflow__item-remove {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--color-text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 200ms var(--ease-move);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cashflow__item-remove:hover {
+      background: rgba(168, 90, 74, 0.08);
+      color: var(--color-error);
+    }
+
+    /* 添加按钮 */
+    .cashflow__add-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1px dashed var(--color-border);
+      background: transparent;
+      color: var(--color-text-muted);
+      font-size: 14px;
+      font-family: var(--font-sans-cn);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 200ms var(--ease-move);
+      margin-top: var(--space-xs);
+    }
+    .cashflow__add-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      border-style: solid;
+    }
+
+    /* 快照名称 */
+    .cashflow__snapshot {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-lg);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .cashflow__snapshot-label {
+      font-family: var(--font-sans-en);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .cashflow__snapshot-name {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-family: var(--font-serif-cn);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-primary);
+      outline: none;
+      padding: 4px 8px;
+      border-bottom: 1px solid transparent;
+      transition: border-color 200ms var(--ease-move);
+    }
+    .cashflow__snapshot-name:focus {
+      border-bottom-color: var(--color-secondary);
+    }
+    .cashflow__snapshot-date {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* 操作按钮组 */
+    .cashflow__actions {
+      display: flex;
+      gap: var(--space-sm);
+      margin-top: var(--space-lg);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border);
+    }
+    .cashflow__action-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: 13px;
+      font-family: var(--font-sans-cn);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 200ms var(--ease-move);
+    }
+    .cashflow__action-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+    .cashflow__action-btn--danger:hover {
+      border-color: var(--color-error);
+      color: var(--color-error);
+    }
+
+    /* 结余率进度条 */
+    .cashflow__rate {
+      margin: var(--space-md) 0;
+    }
+    .cashflow__rate-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2xs);
+    }
+    .cashflow__rate-value {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--color-secondary);
+    }
+    .cashflow__rate-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--color-border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .cashflow__rate-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+      border-radius: 3px;
+      transition: width 700ms var(--ease-enter);
+    }
+    .cashflow__rate-fill--warning {
+      background: var(--color-secondary);
+    }
+    .cashflow__rate-fill--danger {
+      background: var(--color-error);
+    }
+
+    /* 图表容器 */
+    .cashflow__chart-block {
+      margin-top: var(--space-lg);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border);
+    }
+    .cashflow__chart-title {
+      font-family: var(--font-sans-en);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-secondary);
+      margin-bottom: var(--space-sm);
+    }
+    .cashflow__chart-wrap {
+      position: relative;
+      height: 180px;
+    }
+    .cashflow__chart-wrap--bar {
+      height: 220px;
+    }
+    .cashflow__empty {
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 13px;
+      padding: var(--space-md);
+      font-style: italic;
+    }
+
+    /* 移动端 */
+    @media (max-width: 768px) {
+      .cashflow__item {
+        grid-template-columns: 1fr 110px 32px;
+      }
+      .cashflow__item--expense {
+        grid-template-columns: 1fr 110px 32px;
+      }
+      .cashflow__item-category {
+        grid-column: 1 / 4;
+        margin-top: -4px;
+      }
+      .cashflow__actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+  <script>
+    // CountUp 动画（与 calculator.html 一致，参考 CountUp.js v2.8.1 简化实现，MIT）
+    function CountUp(target, endVal, options) {
+      this.el = typeof target === 'string' ? document.getElementById(target) : target;
+      this.endVal = endVal;
+      this.options = Object.assign({
+        startVal: 0, duration: 2, useEasing: true, separator: ',',
+        decimal: '.', decimalPlaces: 0, prefix: '', suffix: ''
+      }, options || {});
+      this.duration = this.options.duration * 1000;
+      this.startVal = this.options.startVal;
+      this.frameVal = this.startVal;
+      this.error = '';
+      this.rAF = null;
+      this.startTime = null;
+      if (!this.el) this.error = '[CountUp] target is null';
+    }
+    CountUp.prototype.easeOutExpo = function(t, b, c, d) {
+      return c * (1 - Math.pow(2, -10 * t / d)) + b;
+    };
+    CountUp.prototype.formatNumber = function(n) {
+      var neg = n < 0 ? '-' : '';
+      var fixed = Math.abs(n).toFixed(this.options.decimalPlaces);
+      var parts = fixed.split('.');
+      var intPart = parts[0];
+      var decPart = parts.length > 1 ? this.options.decimal + parts[1] : '';
+      if (this.options.separator) {
+        intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, this.options.separator);
+      }
+      return neg + this.options.prefix + intPart + decPart + this.options.suffix;
+    };
+    CountUp.prototype.printValue = function(n) {
+      if (this.el) this.el.innerHTML = this.formatNumber(n);
+    };
+    CountUp.prototype.count = function(timestamp) {
+      if (!this.startTime) this.startTime = timestamp;
+      var progress = timestamp - this.startTime;
+      if (this.options.useEasing) {
+        this.frameVal = this.easeOutExpo(progress, this.startVal, this.endVal - this.startVal, this.duration);
+      } else {
+        this.frameVal = this.startVal + (this.endVal - this.startVal) * (progress / this.duration);
+      }
+      if (this.endVal >= this.startVal ? this.frameVal > this.endVal : this.frameVal < this.endVal) {
+        this.frameVal = this.endVal;
+      }
+      this.frameVal = Number(this.frameVal.toFixed(this.options.decimalPlaces));
+      this.printValue(this.frameVal);
+      if (progress < this.duration) {
+        this.rAF = requestAnimationFrame(this.count.bind(this));
+      } else {
+        this.printValue(this.endVal);
+        this.rAF = null;
+        if (this.options.onCompleteCallback) this.options.onCompleteCallback();
+      }
+    };
+    CountUp.prototype.start = function(callback) {
+      if (this.error) return;
+      if (callback) this.options.onCompleteCallback = callback;
+      this.startTime = null;
+      this.frameVal = this.startVal;
+      this.rAF = requestAnimationFrame(this.count.bind(this));
+    };
+  </script>
+</head>
+<body>
+
+  <!-- 导航（v3.2：现金流独立为 cashflow.html，index.html 作为重定向入口） -->
+  <nav class="nav">
+    <div class="container nav__inner">
+      <a href="cashflow.html" class="nav__logo">划<span>算</span></a>
+      <ul class="nav__menu">
+        <li><a href="cashflow.html" class="active">现金流</a></li>
+        <li><a href="plans.html">未来计划</a></li>
+        <li><a href="calculator.html">消费决策</a></li>
+        <li><a href="methodology.html">方法论</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="section section--tight">
+    <div class="container">
+      <div class="eyebrow fade-up">CASH FLOW</div>
+      <h1 class="section-title fade-up">看清每月现金流</h1>
+      <p class="section-subtitle fade-up">收入、支出、结余，一目了然。所有数据本地保存，不上传任何服务器。</p>
+
+      <!-- 计算布局 -->
+      <div class="calc-layout">
+        <!-- 左侧：表单 -->
+        <div class="fade-up">
+          <!-- 快照名称 -->
+          <div class="cashflow__snapshot">
+            <span class="cashflow__snapshot-label">快照</span>
+            <input type="text" class="cashflow__snapshot-name" id="snapshotName" value="当前月" maxlength="20">
+            <span class="cashflow__snapshot-date" id="snapshotDate"></span>
+          </div>
+
+          <!-- 收入区 -->
+          <div class="cashflow__section">
+            <div class="cashflow__section-header">
+              <span class="cashflow__section-title">月收入</span>
+              <span class="cashflow__section-total" id="incomeTotal">¥0</span>
+            </div>
+            <div id="incomeList"></div>
+            <button class="cashflow__add-btn" id="addIncomeBtn">+ 添加收入项</button>
+          </div>
+
+          <!-- 支出区 -->
+          <div class="cashflow__section">
+            <div class="cashflow__section-header">
+              <span class="cashflow__section-title">月支出</span>
+              <span class="cashflow__section-total" id="expenseTotal">¥0</span>
+            </div>
+            <div id="expenseList"></div>
+            <button class="cashflow__add-btn" id="addExpenseBtn">+ 添加支出项</button>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="cashflow__actions">
+            <button class="cashflow__action-btn" id="loadSampleBtn">载入示例数据</button>
+            <button class="cashflow__action-btn cashflow__action-btn--danger" id="clearAllBtn">清空所有</button>
+          </div>
+        </div>
+
+        <!-- 右侧：结果面板 -->
+        <div class="result-panel fade-up">
+          <div class="result-eyebrow">月结余</div>
+          <div class="result-number" id="resultNumber">0</div>
+          <div class="result-unit">元</div>
+
+          <!-- 结余率 -->
+          <div class="cashflow__rate">
+            <div class="cashflow__rate-label">
+              <span>结余率</span>
+              <span class="cashflow__rate-value" id="rateValue">0%</span>
+            </div>
+            <div class="cashflow__rate-bar">
+              <div class="cashflow__rate-fill" id="rateFill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- 明细 -->
+          <div class="result-detail" id="resultDetail"></div>
+
+          <!-- 收入饼图 -->
+          <div class="cashflow__chart-block">
+            <div class="cashflow__chart-title">收入构成</div>
+            <div class="cashflow__chart-wrap">
+              <canvas id="incomeChart"></canvas>
+            </div>
+          </div>
+
+          <!-- 支出条形图 -->
+          <div class="cashflow__chart-block">
+            <div class="cashflow__chart-title">支出分布</div>
+            <div class="cashflow__chart-wrap cashflow__chart-wrap--bar">
+              <canvas id="expenseChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">划算</div>
+      <div class="footer__copy">© 2026 划算 · 财产健康，看得见</div>
+    </div>
+  </footer>
+
+  <script>
+    // ========== CashflowApp 模块（参考 r66ff/budget-app 的构造函数+原型模式） ==========
+    // 数据持久化参考 devfinances：JSON.stringify/parse + try-catch + 数据变化→重渲染
+    // Chart.js 集成参考 aakashsr/budget-tracker：纯原生 JS 项目中的 Chart.js 用法
+
+    function CashflowApp() {
+      this.STORAGE_KEY = 'huasuan_cashflow';
+      this.state = this.loadState();
+      this.countUpInstance = null;
+      this.incomeChart = null;
+      this.expenseChart = null;
+      this.calcTimer = null;
+      this.init();
+    }
+
+    // 默认示例数据（首次访问时显示，让用户立刻看到完整功能）
+    CashflowApp.prototype.getDefaultState = function() {
+      return {
+        snapshotName: '当前月',
+        incomes: [
+          { id: this.genId(), name: '工资', amount: 15000 },
+          { id: this.genId(), name: '副业', amount: 2000 }
+        ],
+        expenses: [
+          { id: this.genId(), name: '房租', amount: 4000, category: 'fixed' },
+          { id: this.genId(), name: '订阅服务', amount: 300, category: 'fixed' },
+          { id: this.genId(), name: '餐饮', amount: 2500, category: 'variable' },
+          { id: this.genId(), name: '交通', amount: 800, category: 'variable' },
+          { id: this.genId(), name: '购物', amount: 1500, category: 'variable' },
+          { id: this.genId(), name: '娱乐', amount: 1000, category: 'variable' }
+        ],
+        updatedAt: null
+      };
+    };
+
+    CashflowApp.prototype.getEmptyState = function() {
+      return {
+        snapshotName: '当前月',
+        incomes: [{ id: this.genId(), name: '', amount: 0 }],
+        expenses: [{ id: this.genId(), name: '', amount: 0, category: 'variable' }],
+        updatedAt: null
+      };
+    };
+
+    CashflowApp.prototype.genId = function() {
+      return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+    };
+
+    CashflowApp.prototype.loadState = function() {
+      try {
+        var raw = localStorage.getItem(this.STORAGE_KEY);
+        if (!raw) return this.getDefaultState();
+        var parsed = JSON.parse(raw);
+        if (!parsed.incomes || !parsed.expenses) return this.getDefaultState();
+        return parsed;
+      } catch (e) {
+        console.warn('[Cashflow] 数据解析失败，使用默认值', e);
+        return this.getDefaultState();
+      }
+    };
+
+    CashflowApp.prototype.saveState = function() {
+      this.state.updatedAt = new Date().toISOString();
+      try {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+      } catch (e) {
+        console.error('[Cashflow] 保存失败', e);
+        alert('存储空间已满，请清理浏览器数据后重试');
+      }
+      this.updateSnapshotDate();
+    };
+
+    CashflowApp.prototype.updateSnapshotDate = function() {
+      var dateEl = document.getElementById('snapshotDate');
+      if (!dateEl) return;
+      if (this.state.updatedAt) {
+        var d = new Date(this.state.updatedAt);
+        var yyyy = d.getFullYear();
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var dd = String(d.getDate()).padStart(2, '0');
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mi = String(d.getMinutes()).padStart(2, '0');
+        dateEl.textContent = yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + mi;
+      } else {
+        dateEl.textContent = '未保存';
+      }
+    };
+
+    CashflowApp.prototype.init = function() {
+      // 初始化快照名称
+      document.getElementById('snapshotName').value = this.state.snapshotName;
+
+      // 渲染初始列表
+      this.renderIncomeList();
+      this.renderExpenseList();
+
+      // 绑定事件
+      this.bindEvents();
+
+      // 初始化图表
+      this.initCharts();
+
+      // 首次计算
+      this.calculate();
+
+      this.updateSnapshotDate();
+    };
+
+    CashflowApp.prototype.bindEvents = function() {
+      var self = this;
+
+      // 快照名称
+      document.getElementById('snapshotName').addEventListener('input', function(e) {
+        self.state.snapshotName = e.target.value;
+        self.saveState();
+      });
+
+      // 添加收入项
+      document.getElementById('addIncomeBtn').addEventListener('click', function() {
+        self.state.incomes.push({ id: self.genId(), name: '', amount: 0 });
+        self.renderIncomeList();
+        self.calculate();
+        self.saveState();
+      });
+
+      // 添加支出项
+      document.getElementById('addExpenseBtn').addEventListener('click', function() {
+        self.state.expenses.push({ id: self.genId(), name: '', amount: 0, category: 'variable' });
+        self.renderExpenseList();
+        self.calculate();
+        self.saveState();
+      });
+
+      // 载入示例
+      document.getElementById('loadSampleBtn').addEventListener('click', function() {
+        if (!confirm('确定载入示例数据？将覆盖当前所有收支项。')) return;
+        var sample = self.getDefaultState();
+        self.state.snapshotName = self.state.snapshotName || '当前月';
+        self.state.incomes = sample.incomes;
+        self.state.expenses = sample.expenses;
+        document.getElementById('snapshotName').value = self.state.snapshotName;
+        self.renderIncomeList();
+        self.renderExpenseList();
+        self.calculate();
+        self.saveState();
+      });
+
+      // 清空所有
+      document.getElementById('clearAllBtn').addEventListener('click', function() {
+        if (!confirm('确定清空所有收支项？此操作不可恢复。')) return;
+        var empty = self.getEmptyState();
+        self.state.incomes = empty.incomes;
+        self.state.expenses = empty.expenses;
+        self.renderIncomeList();
+        self.renderExpenseList();
+        self.calculate();
+        self.saveState();
+      });
+    };
+
+    // ========== 收入列表渲染 ==========
+    CashflowApp.prototype.renderIncomeList = function() {
+      var listEl = document.getElementById('incomeList');
+      var self = this;
+      listEl.innerHTML = '';
+
+      this.state.incomes.forEach(function(item, idx) {
+        var row = document.createElement('div');
+        row.className = 'cashflow__item';
+        row.innerHTML =
+          '<input type="text" class="cashflow__item-name" placeholder="收入名称（如：工资）" value="' + self.escape(item.name) + '" data-idx="' + idx + '" data-field="name">' +
+          '<input type="number" class="cashflow__item-amount" placeholder="0" value="' + (item.amount || '') + '" data-idx="' + idx + '" data-field="amount" min="0" step="100">' +
+          '<button class="cashflow__item-remove" data-idx="' + idx + '" title="删除">×</button>';
+        listEl.appendChild(row);
+      });
+
+      // 绑定收入项事件
+      listEl.querySelectorAll('.cashflow__item-name, .cashflow__item-amount').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          var field = e.target.dataset.field;
+          if (field === 'amount') {
+            self.state.incomes[i].amount = parseFloat(e.target.value) || 0;
+          } else {
+            self.state.incomes[i].name = e.target.value;
+          }
+          self.debouncedCalc();
+        });
+        input.addEventListener('blur', function() { self.saveState(); });
+      });
+      listEl.querySelectorAll('.cashflow__item-remove').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          self.state.incomes.splice(i, 1);
+          if (self.state.incomes.length === 0) {
+            self.state.incomes.push({ id: self.genId(), name: '', amount: 0 });
+          }
+          self.renderIncomeList();
+          self.calculate();
+          self.saveState();
+        });
+      });
+    };
+
+    // ========== 支出列表渲染 ==========
+    CashflowApp.prototype.renderExpenseList = function() {
+      var listEl = document.getElementById('expenseList');
+      var self = this;
+      listEl.innerHTML = '';
+
+      this.state.expenses.forEach(function(item, idx) {
+        var row = document.createElement('div');
+        row.className = 'cashflow__item cashflow__item--expense';
+        row.innerHTML =
+          '<input type="text" class="cashflow__item-name" placeholder="支出名称（如：房租）" value="' + self.escape(item.name) + '" data-idx="' + idx + '" data-field="name">' +
+          '<input type="number" class="cashflow__item-amount" placeholder="0" value="' + (item.amount || '') + '" data-idx="' + idx + '" data-field="amount" min="0" step="100">' +
+          '<select class="cashflow__item-category" data-idx="' + idx + '" data-field="category">' +
+            '<option value="fixed"' + (item.category === 'fixed' ? ' selected' : '') + '>固定</option>' +
+            '<option value="variable"' + (item.category !== 'fixed' ? ' selected' : '') + '>变动</option>' +
+          '</select>' +
+          '<button class="cashflow__item-remove" data-idx="' + idx + '" title="删除">×</button>';
+        listEl.appendChild(row);
+      });
+
+      // 绑定支出项事件
+      listEl.querySelectorAll('.cashflow__item-name, .cashflow__item-amount, .cashflow__item-category').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          var field = e.target.dataset.field;
+          if (field === 'amount') {
+            self.state.expenses[i].amount = parseFloat(e.target.value) || 0;
+          } else if (field === 'category') {
+            self.state.expenses[i].category = e.target.value;
+          } else {
+            self.state.expenses[i].name = e.target.value;
+          }
+          self.debouncedCalc();
+        });
+        input.addEventListener('change', function(e) {
+          if (e.target.dataset.field === 'category') self.saveState();
+        });
+        input.addEventListener('blur', function() { self.saveState(); });
+      });
+      listEl.querySelectorAll('.cashflow__item-remove').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          self.state.expenses.splice(i, 1);
+          if (self.state.expenses.length === 0) {
+            self.state.expenses.push({ id: self.genId(), name: '', amount: 0, category: 'variable' });
+          }
+          self.renderExpenseList();
+          self.calculate();
+          self.saveState();
+        });
+      });
+    };
+
+    // ========== 计算与渲染 ==========
+    CashflowApp.prototype.debouncedCalc = function() {
+      var self = this;
+      if (this.calcTimer) clearTimeout(this.calcTimer);
+      this.calcTimer = setTimeout(function() {
+        self.calculate();
+        self.saveState();
+      }, 120);
+    };
+
+    CashflowApp.prototype.calculate = function() {
+      var totalIncome = this.state.incomes.reduce(function(s, it) { return s + (parseFloat(it.amount) || 0); }, 0);
+      var totalExpense = this.state.expenses.reduce(function(s, it) { return s + (parseFloat(it.amount) || 0); }, 0);
+      var balance = totalIncome - totalExpense;
+      var rate = totalIncome > 0 ? (balance / totalIncome * 100) : 0;
+
+      // 更新总额显示
+      document.getElementById('incomeTotal').textContent = '¥' + this.formatNum(totalIncome);
+      document.getElementById('expenseTotal').textContent = '¥' + this.formatNum(totalExpense);
+
+      // 更新结余大数字（CountUp）
+      this.updateBalanceNumber(balance);
+
+      // 更新结余率
+      this.updateRate(rate);
+
+      // 更新明细
+      this.updateDetail(totalIncome, totalExpense, balance, rate);
+
+      // 更新图表
+      this.updateCharts();
+    };
+
+    CashflowApp.prototype.updateBalanceNumber = function(balance) {
+      var target = document.getElementById('resultNumber');
+      var finalVal = Math.round(balance);
+      var isNeg = finalVal < 0;
+
+      if (this.countUpInstance && !this.countUpInstance.error) {
+        if (this.countUpInstance.rAF) {
+          this.countUpInstance.endVal = finalVal;
+        } else {
+          this.countUpInstance.startVal = this.countUpInstance.frameVal;
+          this.countUpInstance.endVal = finalVal;
+          this.countUpInstance.startTime = null;
+          this.countUpInstance.duration = 1500;
+          this.countUpInstance.rAF = requestAnimationFrame(this.countUpInstance.count.bind(this.countUpInstance));
+        }
+      } else {
+        this.countUpInstance = new CountUp(target, finalVal, {
+          startVal: 0, duration: 1.5, useEasing: true, separator: ','
+        });
+        if (!this.countUpInstance.error) this.countUpInstance.start();
+        else target.textContent = this.formatNum(finalVal);
+      }
+
+      // 负数时颜色变红
+      target.style.color = isNeg ? 'var(--color-error)' : 'var(--color-primary)';
+    };
+
+    CashflowApp.prototype.updateRate = function(rate) {
+      var rateEl = document.getElementById('rateValue');
+      var fillEl = document.getElementById('rateFill');
+      var displayRate = Math.max(0, Math.min(100, rate));
+      rateEl.textContent = rate.toFixed(1) + '%';
+      fillEl.style.width = displayRate + '%';
+
+      // 颜色档位：>30% 主色，10-30% 金色，<10% 红色
+      fillEl.classList.remove('cashflow__rate-fill--warning', 'cashflow__rate-fill--danger');
+      if (rate < 0) {
+        fillEl.classList.add('cashflow__rate-fill--danger');
+      } else if (rate < 10) {
+        fillEl.classList.add('cashflow__rate-fill--warning');
+      }
+      // >10% 用默认渐变（主色→金色）
+    };
+
+    CashflowApp.prototype.updateDetail = function(totalIncome, totalExpense, balance, rate) {
+      var fixedExpense = this.state.expenses
+        .filter(function(it) { return it.category === 'fixed'; })
+        .reduce(function(s, it) { return s + (parseFloat(it.amount) || 0); }, 0);
+      var variableExpense = totalExpense - fixedExpense;
+
+      var html =
+        '<div class="result-detail-row"><span>总收入</span><span>¥' + this.formatNum(totalIncome) + '</span></div>' +
+        '<div class="result-detail-row"><span>总支出</span><span>¥' + this.formatNum(totalExpense) + '</span></div>' +
+        '<div class="result-detail-row"><span>固定支出</span><span>¥' + this.formatNum(fixedExpense) + '</span></div>' +
+        '<div class="result-detail-row"><span>变动支出</span><span>¥' + this.formatNum(variableExpense) + '</span></div>' +
+        '<div class="result-detail-row result-detail-row--total"><span>月结余</span><span>¥' + this.formatNum(balance) + '</span></div>' +
+        '<div class="result-detail-row result-detail-row--total"><span>结余率</span><span>' + rate.toFixed(1) + '%</span></div>';
+      document.getElementById('resultDetail').innerHTML = html;
+    };
+
+    // ========== Chart.js 集成 ==========
+    // 收入饼图：doughnut；支出条形图：bar
+    CashflowApp.prototype.initCharts = function() {
+      var self = this;
+
+      // 颜色调色板（主色系 + 金色系 + 灰阶，遵循 Editorial Precision 风格）
+      this.colorPalette = [
+        '#2D4A3E', '#B8935A', '#5C7A6E', '#D4B074',
+        '#8FA89B', '#8A6F3F', '#3E5C50', '#C9A679'
+      ];
+
+      // 收入饼图
+      var incomeCtx = document.getElementById('incomeChart').getContext('2d');
+      this.incomeChart = new Chart(incomeCtx, {
+        type: 'doughnut',
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: this.colorPalette,
+            borderColor: '#FAFAF7',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                font: { family: 'Noto Sans SC', size: 11 },
+                color: '#1A1A1A',
+                boxWidth: 12,
+                padding: 8
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  var val = ctx.parsed;
+                  var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                  var pct = total > 0 ? (val / total * 100).toFixed(1) : 0;
+                  return ctx.label + ': ¥' + self.formatNum(val) + ' (' + pct + '%)';
+                }
+              }
+            }
+          },
+          cutout: '60%'
+        }
+      });
+
+      // 支出条形图
+      var expenseCtx = document.getElementById('expenseChart').getContext('2d');
+      this.expenseChart = new Chart(expenseCtx, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: '#2D4A3E',
+            borderColor: '#2D4A3E',
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  return '¥' + self.formatNum(ctx.parsed.x);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                font: { family: 'JetBrains Mono', size: 10 },
+                color: '#8A8A8A',
+                callback: function(val) { return '¥' + self.formatNum(val); }
+              },
+              grid: { color: '#E8E6E1' }
+            },
+            y: {
+              ticks: {
+                font: { family: 'Noto Sans SC', size: 11 },
+                color: '#1A1A1A'
+              },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    };
+
+    CashflowApp.prototype.updateCharts = function() {
+      var self = this;
+
+      // 收入饼图数据
+      var incomeData = this.state.incomes
+        .filter(function(it) { return it.name && it.amount > 0; })
+        .map(function(it) { return { name: it.name, amount: parseFloat(it.amount) || 0 }; });
+
+      if (incomeData.length === 0) {
+        this.incomeChart.data.labels = ['（无数据）'];
+        this.incomeChart.data.datasets[0].data = [1];
+        this.incomeChart.data.datasets[0].backgroundColor = ['#E8E6E1'];
+      } else {
+        this.incomeChart.data.labels = incomeData.map(function(d) { return d.name; });
+        this.incomeChart.data.datasets[0].data = incomeData.map(function(d) { return d.amount; });
+        this.incomeChart.data.datasets[0].backgroundColor = this.colorPalette;
+      }
+      this.incomeChart.update('none'); // 跳过动画，避免抖动
+
+      // 支出条形图数据
+      var expenseData = this.state.expenses
+        .filter(function(it) { return it.name && it.amount > 0; })
+        .map(function(it) { return { name: it.name, amount: parseFloat(it.amount) || 0, category: it.category }; });
+
+      if (expenseData.length === 0) {
+        this.expenseChart.data.labels = ['（无数据）'];
+        this.expenseChart.data.datasets[0].data = [0];
+        this.expenseChart.data.datasets[0].backgroundColor = ['#E8E6E1'];
+      } else {
+        this.expenseChart.data.labels = expenseData.map(function(d) { return d.name; });
+        this.expenseChart.data.datasets[0].data = expenseData.map(function(d) { return d.amount; });
+        // 固定支出用主色，变动支出用金色
+        this.expenseChart.data.datasets[0].backgroundColor = expenseData.map(function(d) {
+          return d.category === 'fixed' ? '#2D4A3E' : '#B8935A';
+        });
+        this.expenseChart.data.datasets[0].borderColor = this.expenseChart.data.datasets[0].backgroundColor;
+      }
+      this.expenseChart.update('none');
+    };
+
+    // ========== 工具方法 ==========
+    CashflowApp.prototype.formatNum = function(n) {
+      if (typeof n !== 'number') n = parseFloat(n) || 0;
+      return Math.round(n).toLocaleString('zh-CN');
+    };
+
+    CashflowApp.prototype.escape = function(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+
+    // ========== 启动 ==========
+    var app = null;
+    document.addEventListener('DOMContentLoaded', function() {
+      app = new CashflowApp();
+
+      // 滚动入场动画
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.fade-up').forEach(function(el) { observer.observe(el); });
+    });
+  </script>
+</body>
+</html>

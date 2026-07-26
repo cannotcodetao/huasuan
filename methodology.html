@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>划算 — 方法论</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container nav__inner">
+      <a href="cashflow.html" class="nav__logo">划<span>算</span></a>
+      <ul class="nav__menu">
+        <li><a href="cashflow.html">现金流</a></li>
+        <li><a href="plans.html">未来计划</a></li>
+        <li><a href="calculator.html">消费决策</a></li>
+        <li><a href="methodology.html" class="active">方法论</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="section">
+    <div class="container">
+      <div class="method-content">
+        <div class="eyebrow fade-up">METHODOLOGY</div>
+        <h1 class="hero-title fade-up" style="margin: var(--space-md) 0 var(--space-lg);">公式公开，结果可追溯</h1>
+
+        <p class="fade-up">划算的计算逻辑完全透明。每个参数都可调整，每个结果都可复现。这里列出所有计算公式和数据来源，让你对结果有信心。</p>
+
+        <h2 class="fade-up">两种计算模板</h2>
+        <p class="fade-up">划算有两种核心计算模式，覆盖资产类和节省类消费决策：</p>
+
+        <h3 class="fade-up">模板A：盈亏平衡型</h3>
+        <p class="fade-up">适用于车、房等资产类消费。核心逻辑是计算"资产年成本 ÷ 替代方案单价 = 盈亏平衡用量"，即需要使用多少才能回本。</p>
+        <div class="formula fade-up">
+盈亏平衡用量 = 资产年成本 ÷ 替代方案单价
+        </div>
+
+        <h3 class="fade-up">购车年成本公式</h3>
+        <p class="fade-up">购车成本包含折旧、保险、油费、保养、停车和贷款利息六项：</p>
+        <div class="formula fade-up">
+年成本 = 年折旧 + 年保险 + (年里程 ÷ 100 × 油费/百公里)
+       + 年保养 + 月停车 × 12 + 贷款利息(如有)
+
+年折旧 = 车价 ÷ 使用年限
+贷款利息 = 车价 × 贷款比例 × 年利率 (如有贷款)
+        </div>
+
+        <h3 class="fade-up">购房盈亏平衡公式</h3>
+        <p class="fade-up">购房的盈亏平衡点是"购房总价 ÷ 月租金"，表示多少个月的租金等于购房总价：</p>
+        <div class="formula fade-up">
+盈亏平衡月数 = 购房总价 ÷ 月租金
+盈亏平衡年数 = 月数 ÷ 12
+
+购房年成本 = 年折旧 + 贷款利息(如有)
+年折旧 = 房价 ÷ 使用年限
+        </div>
+        <p class="fade-up"><strong>注意：</strong>购房盈亏平衡的"月数"只与购房总价和月租金有关，与贷款无关。贷款影响的是"年成本"（用于其他场景），但盈亏平衡点只看总价与月租的比值。</p>
+
+        <h3 class="fade-up">模板B：节省型</h3>
+        <p class="fade-up">适用于餐具等日常消费。按外食毛利率反推外食成本，计算自己做饭相比外食的年节省金额：</p>
+        <div class="formula fade-up">
+外食日成本 = 做饭日成本 ÷ (1 - 毛利率)
+日节省 = 外食日成本 - 做饭日成本
+年节省 = 日节省 × 365
+
+毛利率默认 70%，范围 60%-80% 可调
+        </div>
+
+        <h2 class="fade-up">默认参考数据（2026年中国市场）</h2>
+        <p class="fade-up">以下是计算器中的默认参数值，基于2026年中国市场平均水平：</p>
+
+        <div class="formula fade-up" style="line-height:2;">
+购车默认值：
+  车价          120,000 元 (经济型)
+  使用年限      10 年
+  年保险        4,000 元
+  年油费        8,250 元 (15000km × 55元/百公里)
+  年保养        2,000 元
+  月停车        400 元
+  打车单价      2.5 元/公里
+  车贷年利率    5%
+
+购房默认值：
+  房价          2,000,000 元 (二线城市)
+  使用年限      50 年
+  月租金        3,000 元 (用户可自填)
+  房贷年利率    4%
+
+餐具默认值：
+  做饭日成本    30 元/天
+  外食毛利率    70%
+        </div>
+
+        <h2 class="fade-up">计算示例</h2>
+
+        <h3 class="fade-up">购车（无贷款）</h3>
+        <div class="formula fade-up">
+年折旧 = 120,000 ÷ 10 = 12,000
+年成本 = 12,000 + 4,000 + 8,250 + 2,000 + 400×12 = 31,050
+盈亏平衡 = 31,050 ÷ 2.5 = 12,420 公里/年
+        </div>
+        <p class="fade-up">结论：相当于每年打车 12,420 公里，买车才比打车划算。这相当于每天打车 34 公里。</p>
+
+        <h3 class="fade-up">购房（无贷款，月租 3,000）</h3>
+        <div class="formula fade-up">
+盈亏平衡月数 = 2,000,000 ÷ 3,000 ≈ 667 个月
+盈亏平衡年数 = 667 ÷ 12 ≈ 55.6 年
+        </div>
+        <p class="fade-up">结论：相当于 3,000 元/月房租，住 55.6 年，累积租金才等于购房总价。月租金可由用户自填，默认 3,000 元。</p>
+
+        <h3 class="fade-up">餐具（毛利率70%）</h3>
+        <div class="formula fade-up">
+外食日成本 = 30 ÷ (1 - 0.7) = 100 元
+日节省 = 100 - 30 = 70 元
+年节省 = 70 × 365 = 25,550 元
+        </div>
+        <p class="fade-up">结论：每天做饭成本 30 元，按外食毛利率 70% 反推，相当于每年省下 25,550 元。</p>
+
+        <h2 class="fade-up">数据来源</h2>
+        <ul class="fade-up">
+          <li>车价、油价：汽车之家、发改委油价数据（2026年7月）</li>
+          <li>年里程：国家统计局《中国统计年鉴》城市居民出行数据</li>
+          <li>房价、租金：国家统计局70个大中城市住宅销售价格变动情况</li>
+          <li>贷款利率：人民银行LPR基准利率 + 商业银行加点</li>
+          <li>餐饮毛利率：中国饭店协会《中国餐饮业年度报告》</li>
+        </ul>
+
+        <h2 class="fade-up">局限与说明</h2>
+        <ul class="fade-up">
+          <li>贷款利息采用简易估算（本金×利率），不含复利和等额本息明细</li>
+          <li>未考虑车辆残值、房屋增值/贬值、通货膨胀等因素</li>
+          <li>税率（购置税、房产税、契税）未纳入计算</li>
+          <li>结果仅供参考，不构成投资建议</li>
+        </ul>
+
+        <h2 class="fade-up">v3.1 公式：现金流 / 复利 / 每笔独立预测</h2>
+        <p class="fade-up">v3.1 在消费决策计算器之上，提供"财产健康守护"三件套：现金流管理、未来计划、每笔独立的完成时间预测。以下是这三个功能的计算逻辑。</p>
+
+        <h3 class="fade-up">月现金流公式</h3>
+        <p class="fade-up">月结余是所有预测计算的输入基础，来自现金流页面（cashflow.html）的收入与支出项汇总。</p>
+        <div class="formula fade-up">
+月结余 = 总收入 − 总支出
+结余率 = 月结余 ÷ 总收入 × 100%
+        </div>
+        <p class="fade-up">支出分为"固定支出"（房租、保险、贷款等）与"变动支出"（餐饮、娱乐、购物等）两类，便于后续优化分析。</p>
+
+        <h3 class="fade-up">每笔独立预测公式（未来计划页内嵌）</h3>
+        <p class="fade-up">v3.1 取消独立的"完成预测"页面，把预测直接嵌入"未来计划"页面：每张计划卡片自动显示"至少 X 年 Y 月"完成时间。每笔计划独立计算，互不排队——这是与 v3.0 串行策略的关键差异。</p>
+        <div class="formula fade-up">
+输入：
+  月结余 M            ← 自动从 cashflow localStorage 读取
+  年化收益率 r%        ← 用户下拉选择（0% / 3% / 5%，默认 0%）
+  目标金额 T          ← 该笔计划的目标金额
+
+若 r = 0（纯线性，默认）：
+  预计月数 = ⌈ T ÷ M ⌉
+
+若 r > 0（按月复利）：
+  月利率 i = r ÷ 12
+  累计₀ = 0
+  累计ₙ = 累计ₙ₋₁ × (1 + i) + M      # 每月既有本金增值，又有新投入
+  预计月数 = 最小的 n，使 累计ₙ ≥ T
+        </div>
+        <p class="fade-up">参考 <em>@toolsnap/compound-interest-calculator</em> 的 withMonthlyContribution 公式：每月既有本金增值，又有新投入（月结余）。</p>
+
+        <h3 class="fade-up">显示规则</h3>
+        <ul class="fade-up">
+          <li><strong>进行中（active）</strong>：显示"至少 X 年 Y 月"，主色</li>
+          <li><strong>已暂停（paused）</strong>：显示"已暂停"，灰色</li>
+          <li><strong>已完成（completed）</strong>：显示"已达成"，主色</li>
+          <li><strong>月结余 ≤ 0</strong>：显示"请先填写现金流"，警示色</li>
+          <li><strong>预测完成日期晚于截止日期</strong>：显示"⚠ 至少 X 年 Y 月（已超期）"，红色</li>
+        </ul>
+        <p class="fade-up">月数格式：12 的整数倍显示"X 年"，否则显示"X 年 Y 月"或"Y 个月"。计算上限 100 年（1200 个月），超出显示"—"。</p>
+
+        <h3 class="fade-up">与 v3.0 串行策略的对比</h3>
+        <ul class="fade-up">
+          <li><strong>v3.0 串行</strong>：月结余全部投入优先级最高的一笔，完成后顺延下一笔 → 总完成时间短，但单笔完成时间依赖排队顺序</li>
+          <li><strong>v3.1 独立</strong>：每笔计划独立用全部月结余计算 → 单笔完成时间直观（即"如果只攒这笔要多久"），多笔计划叠加则由用户自行规划</li>
+        </ul>
+        <p class="fade-up">v3.1 的"独立预测"更贴近用户对单笔目标的直觉判断，且不需要复杂排队规则。如需多笔叠加规划，可手动累加。</p>
+
+        <h3 class="fade-up">数据来源与存储</h3>
+        <ul class="fade-up">
+          <li>月结余：从现金流 localStorage（键名 <code>huasuan_cashflow</code>）自动读取，每次渲染未来计划页时刷新</li>
+          <li>计划列表：从未来计划 localStorage（键名 <code>huasuan_plans</code>）自动读取</li>
+          <li>所有计算在浏览器本地完成，不上传任何数据</li>
+        </ul>
+
+        <div class="fade-up" style="margin-top:var(--space-2xl); text-align:center;">
+          <a href="calculator.html" class="btn btn--primary">开始计算 →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">划算</div>
+      <div class="footer__copy">© 2026 划算 · 决策即品味</div>
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>

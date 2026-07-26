@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>划算 — 内容</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container nav__inner">
+      <a href="index.html" class="nav__logo">划<span>算</span></a>
+      <ul class="nav__menu">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="cashflow.html">现金流</a></li>
+        <li><a href="plans.html">未来计划</a></li>
+        <li><a href="forecast.html">完成预测</a></li>
+        <li><a href="calculator.html">消费决策</a></li>
+        <li><a href="methodology.html">方法论</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="section">
+    <div class="container">
+      <div class="method-content" style="text-align:center;">
+        <div class="eyebrow fade-up">COMING SOON</div>
+        <h1 class="hero-title fade-up" style="margin: var(--space-md) 0 var(--space-lg);">内容栏目<br>正在筹备</h1>
+
+        <p class="fade-up" style="font-size:18px; color:var(--color-text-muted); line-height:1.7; max-width:560px; margin:0 auto var(--space-xl);">
+          划算的"内容"方向尚在打磨。<br>
+          可能是决策案例库，可能是消费洞察报告，也可能是别的什么。<br><br>
+          <span style="color:var(--color-text);">我们想先把工具做扎实，再决定讲什么故事。</span>
+        </p>
+
+        <div class="fade-up" style="margin-top:var(--space-2xl); padding:var(--space-lg); background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); max-width:480px; margin-left:auto; margin-right:auto;">
+          <div style="font-family:var(--font-sans-en); font-size:11px; letter-spacing:0.15em; color:var(--color-secondary); margin-bottom:var(--space-sm);">STATUS</div>
+          <div style="font-family:var(--font-mono); font-size:14px; color:var(--color-text); line-height:1.8; text-align:left;">
+            <div style="display:flex; justify-content:space-between;"><span>工具</span><span style="color:var(--color-primary);">已上线</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>方法论</span><span style="color:var(--color-primary);">已上线</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>内容栏目</span><span style="color:var(--color-secondary);">筹备中</span></div>
+          </div>
+        </div>
+
+        <div class="fade-up" style="margin-top:var(--space-2xl);">
+          <a href="calculator.html" class="btn btn--primary">先用计算器 →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">划算</div>
+      <div class="footer__copy">© 2026 划算 · 决策即品味</div>
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
