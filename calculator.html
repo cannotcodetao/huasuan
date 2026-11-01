@@ -77,13 +77,12 @@
 </head>
 <body>
 
-  <!-- 导航（v3.2：现金流独立为 cashflow.html） -->
+  <!-- 导航（v3.4：现金流+未来计划合并为首页 index.html） -->
   <nav class="nav">
     <div class="container nav__inner">
-      <a href="cashflow.html" class="nav__logo">划<span>算</span></a>
+      <a href="index.html" class="nav__logo">划<span>算</span></a>
       <ul class="nav__menu">
-        <li><a href="cashflow.html">现金流</a></li>
-        <li><a href="plans.html">未来计划</a></li>
+        <li><a href="index.html">首页</a></li>
         <li><a href="calculator.html" class="active">消费决策</a></li>
         <li><a href="methodology.html">方法论</a></li>
       </ul>
@@ -103,23 +102,46 @@
         <div class="category-tab" data-category="tableware">做饭 vs 外食</div>
       </div>
 
-      <!-- 计算布局 -->
-      <div class="calc-layout">
-        <!-- 左侧：表单 -->
-        <div class="fade-up">
-          <div id="formSection"></div>
-          <button class="btn btn--ghost" style="margin-top:var(--space-md);width:100%;justify-content:center;" onclick="resetForm()">重置参数</button>
-        </div>
-
-        <!-- 右侧：结果 -->
-        <div class="result-panel fade-up">
+      <!-- 计算布局 v3.9：吸顶结果条 + 参数三列 + 全宽明细 -->
+      <div class="calc-sticky fade-up">
+        <div class="calc-sticky__main">
           <div class="result-eyebrow" id="resultLabel">请输入参数</div>
           <div class="result-number" id="resultNumber">0</div>
           <div class="result-unit" id="resultUnit"></div>
-          <div class="result-analogy" id="resultAnalogy" style="display:none;"></div>
-          <div class="result-detail" id="resultDetail"></div>
         </div>
+        <div class="calc-sticky__sub" id="resultSubline"></div>
       </div>
+
+      <div class="calc-cols fade-up" id="formSection"></div>
+
+      <!-- v3.13 还款方式对比：等额本息 vs 等额本金（默认折叠，示例：借款 1 万 · 年利率 24% · 12 期） -->
+      <details class="repay fade-up" id="repayCompare">
+        <summary class="repay__summary">
+          <span class="repay__summary-main">还款方式对比：等额本息 vs 等额本金</span>
+          <span class="repay__summary-sub">示例：借款 1 万 · 年利率 24% · 12 期</span>
+        </summary>
+        <div class="repay__body">
+          <div class="repay__notes">
+            <div class="repay__note">
+              <h4>等额本息<span>月供固定</span></h4>
+              <p>每月月供相同 = P·r·(1+r)<sup>n</sup> / ((1+r)<sup>n</sup>−1)。前期利息占比高、本金还得慢，资金占用时间长 → 同利率下总利息更多（本例 1,347.15 元）。</p>
+            </div>
+            <div class="repay__note">
+              <h4>等额本金<span>月供递减</span></h4>
+              <p>每月固定还本 P/n，利息 = 剩余本金 × 月利率 → 月供逐月递减，本金还得快 → 总利息更少（本例 1,300.00 元），但前期月供更重。</p>
+            </div>
+          </div>
+          <p class="repay__hint">两种方式首期利息相同（都是 10,000 × 2% = 200.00 元），第 2 期起等额本金利息更少；等额本金「前置」的是月供而非利息。括号内为<b>整笔月供等价年化</b>：保持借款 1 万、12 期不变，按等额本息月供要达到该期等额本金的月供水平，所需的年化利率 —— 第 1 期 1,033.33 元的月供相当于等额本息年化 ≈41.7% 的月供水平，第 12 期 850.00 元仅 ≈3.7%。两法的真实资金成本（IRR）都等于名义利率 24%，括号展示的是前期月供负担，不是成本差异。</p>
+          <div class="repay__table-wrap">
+            <table class="repay__table" id="repayTable"></table>
+          </div>
+          <p class="repay__footnote">金额四舍五入到分；合计行按未舍入精确值计算（等额本息月供精确值 945.5960 元）。</p>
+        </div>
+      </details>
+
+      <div class="calc-detail fade-up" id="resultDetail"></div>
+
+      <button class="btn btn--ghost fade-up" style="margin-top:var(--space-lg);width:100%;justify-content:center;" onclick="resetForm()">重置参数</button>
     </div>
   </section>
 
@@ -147,6 +169,7 @@
         templateType: 'breakEven',
         defaults: {
           price: 2000000, useYears: 50, altUnitPrice: 3000,
+          annualInsurance: 3000, annualPropertyFee: 3600,
           loanRate: 0.04, hasLoan: false, loanRatio: 70,
         }
       },
@@ -171,6 +194,57 @@
       updateTabs();
       renderForm();
       calculate();
+      buildRepayTable();
+    }
+
+    // v3.13：还款方式对比表（固定示例：借款 1 万 · 年利率 24% · 12 期）
+    function buildRepayTable() {
+      const table = document.getElementById('repayTable');
+      if (!table) return;
+      const P = 10000, r = 0.24 / 12, n = 12;
+      const fmt2 = v => v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const annuity = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+
+      // 整笔月供等价年化：同本金同期限，等额本息月供达到 target 时的名义年化（月利率×12），二分法
+      const equivAnnual = target => {
+        let lo = 0, hi = 0.05;
+        for (let i = 0; i < 60; i++) {
+          const mid = (lo + hi) / 2;
+          const m = P * mid * Math.pow(1 + mid, n) / (Math.pow(1 + mid, n) - 1);
+          if (m < target) lo = mid; else hi = mid;
+        }
+        return (lo + hi) / 2 * 12;
+      };
+
+      const monthlyPrincipal = P / n;
+      let remainEq = P;
+      let totPrPay = 0, totPrInt = 0, totEqPay = 0, totEqInt = 0;
+      let rows = '';
+      for (let k = 1; k <= n; k++) {
+        const prInt = (P - (k - 1) * monthlyPrincipal) * r;
+        const prPay = monthlyPrincipal + prInt;
+        const eqInt = remainEq * r;
+        const eqPrincipal = annuity - eqInt;
+        remainEq -= eqPrincipal;
+        totPrPay += prPay; totPrInt += prInt; totEqPay += annuity; totEqInt += eqInt;
+        rows += '<tr><td>' + k + '</td>'
+          + '<td>' + fmt2(prPay) + '</td>'
+          + '<td>' + fmt2(monthlyPrincipal) + '</td>'
+          + '<td>' + fmt2(prInt) + '<span class="repay__eq">（' + (equivAnnual(prPay) * 100).toFixed(1) + '%）</span></td>'
+          + '<td>' + fmt2(annuity) + '</td>'
+          + '<td>' + fmt2(eqPrincipal) + '</td>'
+          + '<td>' + fmt2(eqInt) + '</td></tr>';
+      }
+      table.innerHTML = '<thead>'
+        + '<tr><th rowspan="2">期数</th>'
+        + '<th colspan="3" class="repay__group repay__group--linear">等额本金 · 月供递减</th>'
+        + '<th colspan="3" class="repay__group repay__group--annuity">等额本息 · 月供固定</th></tr>'
+        + '<tr class="repay__subhead"><th>月供</th><th>本金</th><th>利息（括号=等价年化）</th><th>月供</th><th>本金</th><th>利息</th></tr>'
+        + '</thead><tbody>' + rows
+        + '<tr class="repay__total"><td>合计</td>'
+        + '<td>' + fmt2(totPrPay) + '</td><td>' + fmt2(P) + '</td><td>' + fmt2(totPrInt) + '</td>'
+        + '<td>' + fmt2(totEqPay) + '</td><td>' + fmt2(P) + '</td><td>' + fmt2(totEqInt) + '</td></tr>'
+        + '</tbody>';
     }
 
     function updateTabs() {
@@ -184,72 +258,126 @@
       calcTimer = setTimeout(calculate, 100);
     }
 
+    // v3.9：参数三列语义分栏（购车 3 列 / 购房 3 列 / 餐具单列）
     function renderForm() {
       const form = document.getElementById('formSection');
-      const cat = categories[currentCategory];
       let html = '';
 
-      if (cat.templateType === 'breakEven') {
-        html += createFormGroup('price', '购置价', '元', 'number');
-        html += createFormGroup('useYears', '使用年限', '年', 'number');
-
-        if (currentCategory === 'car') {
-          html += createFormGroup('annualInsurance', '年保险', '元', 'number');
-          html += createFormGroup('annualFuel', '年油费', '元', 'number');
-          html += createFormGroup('annualMaintenance', '年保养', '元', 'number');
-          html += createFormGroup('monthlyParking', '月停车', '元', 'number');
-          html += createFormGroup('altUnitPrice', '打车单价', '元/公里', 'number');
-        } else if (currentCategory === 'house') {
-          html += createFormGroup('altUnitPrice', '月租金', '元/月', 'number');
-        }
-
-        html += `
-          <div class="form-group">
-            <div class="form-label">
-              <span>是否贷款</span>
-              <span class="value" id="loanToggleLabel">${currentValues.hasLoan ? '是' : '否'}</span>
-            </div>
-            <input type="range" class="form-slider" min="0" max="1" step="1"
-              value="${currentValues.hasLoan ? 1 : 0}"
-              oninput="toggleLoan(this.value)">
-          </div>
-          <div class="loan-section ${currentValues.hasLoan ? 'show' : ''}" id="loanSection">
-            <div class="form-group">
-              <div class="form-label">
-                <span>贷款比例</span>
-                <span class="value" id="loanRatioLabel">${currentValues.loanRatio}%</span>
-              </div>
-              <input type="range" class="form-slider" min="0" max="100" step="5"
-                value="${currentValues.loanRatio}"
-                oninput="updateValue('loanRatio', this.value)">
-            </div>
-            <div class="form-group">
-              <div class="form-label">
-                <span>年利率</span>
-                <span class="value">${(currentValues.loanRate * 100).toFixed(1)}%</span>
-              </div>
-              <input type="range" class="form-slider" min="0" max="10" step="0.1"
-                value="${(currentValues.loanRate * 100).toFixed(1)}"
-                oninput="updateLoanRate(this.value)">
-            </div>
-          </div>
-        `;
-      } else if (cat.templateType === 'savings') {
-        html += createFormGroup('price', '每天用餐成本(做饭)', '元/天', 'number');
-        html += `
-          <div class="form-group">
-            <div class="form-label">
-              <span>外食毛利率</span>
-              <span class="value" id="marginLabel">${currentValues.margin}%</span>
-            </div>
-            <input type="range" class="form-slider" min="60" max="80" step="1"
-              value="${currentValues.margin}"
-              oninput="updateValue('margin', this.value)">
-            <div class="form-hint">毛利率60%-80%，默认70%（餐饮行业平均）</div>
-          </div>
-        `;
+      if (currentCategory === 'car') {
+        html += calcColumn('购置', 'ACQUISITION',
+          createFormGroup('price', '购置价', '元', 'number') +
+          createFormGroup('useYears', '使用年限', '年', 'number'));
+        html += calcColumn('持有成本', 'OWNERSHIP',
+          createFormGroup('annualInsurance', '年保险', '元', 'number') +
+          createFormGroup('annualFuel', '年油费', '元', 'number') +
+          createFormGroup('annualMaintenance', '年保养', '元', 'number') +
+          createFormGroup('monthlyParking', '月停车', '元', 'number'));
+        html += calcColumn('对比与贷款', 'VS & LOAN',
+          createFormGroup('altUnitPrice', '打车单价', '元/公里', 'number') +
+          loanGroupHtml());
+      } else if (currentCategory === 'house') {
+        const depreciation = currentValues.useYears > 0
+          ? currentValues.price / currentValues.useYears : 0;
+        html += calcColumn('购置', 'ACQUISITION',
+          createFormGroup('price', '购置价', '元', 'number') +
+          createFormGroup('useYears', '使用年限', '年', 'number') +
+          calcSubGroup('持有成本', 'OWNERSHIP COST',
+            readOnlyFormGroup('annualDepreciation', '年折旧', '元', depreciation) +
+            createFormGroup('annualInsurance', '年保险', '元', 'number') +
+            createFormGroup('annualPropertyFee', '年物业费', '元', 'number')));
+        html += calcColumn('对比', 'RENTAL',
+          createFormGroup('altUnitPrice', '月租金', '元/月', 'number'));
+        html += calcColumn('贷款', 'LOAN', loanGroupHtml());
+      } else {
+        html += calcColumn('做饭 vs 外食', 'COOK VS EAT-OUT',
+          createFormGroup('price', '每天用餐成本(做饭)', '元/天', 'number') +
+          marginGroupHtml());
       }
       form.innerHTML = html;
+    }
+
+    function calcColumn(title, eyebrow, inner) {
+      return `
+        <div class="calc-col">
+          <div class="calc-col__head"><h3>${title}</h3><span>${eyebrow}</span></div>
+          ${inner}
+        </div>
+      `;
+    }
+
+    // 列内子分组（用于"持有成本"这类语义小标题，视觉层级比列头低一级）
+    function calcSubGroup(title, eyebrow, inner) {
+      return `
+        <div class="calc-sub">
+          <div class="calc-sub__head"><h4>${title}</h4><span>${eyebrow}</span></div>
+          ${inner}
+        </div>
+      `;
+    }
+
+    // 只读展示字段（用于派生项：如年折旧，随价格/年限联动而不可直接编辑）
+    function readOnlyFormGroup(key, label, unit, value) {
+      return `
+        <div class="form-group form-group--readonly">
+          <div class="form-label">
+            <span>${label}</span>
+            <span class="value" id="${key}Label">${formatNumber(value)}</span>
+          </div>
+          <input type="text" class="form-input" id="${key}Input" value="${formatNumber(value)}" readonly tabindex="-1">
+          <div class="form-hint">${unit} · 派生值 = 购置价 ÷ 使用年限</div>
+        </div>
+      `;
+    }
+
+    // 贷款组：切换按钮 + 比例/利率输入框（关闭时禁用置灰，布局不跳动）
+    function loanGroupHtml() {
+      const on = currentValues.hasLoan;
+      return `
+        <div class="form-group">
+          <div class="form-label">
+            <span>是否贷款</span>
+            <span class="value" id="loanToggleLabel">${on ? '是' : '否'}</span>
+          </div>
+          <button type="button" class="loan-toggle${on ? ' loan-toggle--on' : ''}" id="loanToggle"
+            role="switch" aria-checked="${on}" onclick="toggleLoan()">
+            <span class="loan-toggle__track"><span class="loan-toggle__thumb"></span></span>
+            <span class="loan-toggle__text">${on ? '开' : '关'}</span>
+          </button>
+        </div>
+        <div class="form-group${on ? '' : ' form-group--off'}" id="loanRatioGroup">
+          <div class="form-label">
+            <span>贷款比例</span>
+            <span class="value" id="loanRatioLabel">${currentValues.loanRatio}%</span>
+          </div>
+          <input type="number" class="form-input" id="loanRatioInput" value="${currentValues.loanRatio}"
+            min="0" max="100" step="5" oninput="updateLoanRatio(this.value)"${on ? '' : ' disabled'}>
+          <div class="form-hint">占购置价的 %（0–100）</div>
+        </div>
+        <div class="form-group${on ? '' : ' form-group--off'}" id="loanRateGroup">
+          <div class="form-label">
+            <span>年利率</span>
+            <span class="value" id="loanRateLabel">${(currentValues.loanRate * 100).toFixed(1)}%</span>
+          </div>
+          <input type="number" class="form-input" id="loanRateInput" value="${(currentValues.loanRate * 100).toFixed(1)}"
+            min="0" max="10" step="0.1" oninput="updateLoanRate(this.value)"${on ? '' : ' disabled'}>
+          <div class="form-hint">贷款年利率 %（0–10）</div>
+        </div>
+      `;
+    }
+
+    function marginGroupHtml() {
+      return `
+        <div class="form-group">
+          <div class="form-label">
+            <span>外食毛利率</span>
+            <span class="value" id="marginLabel">${currentValues.margin}%</span>
+          </div>
+          <input type="range" class="form-slider" min="60" max="80" step="1"
+            value="${currentValues.margin}"
+            oninput="updateValue('margin', this.value)">
+          <div class="form-hint">毛利率60%-80%，默认70%（餐饮行业平均）</div>
+        </div>
+      `;
     }
 
     function createFormGroup(key, label, unit, type) {
@@ -271,7 +399,7 @@
       currentValues[key] = parseFloat(value) || 0;
       const label = document.getElementById(key + 'Label');
       if (label) {
-        if (key === 'loanRatio' || key === 'margin') {
+        if (key === 'margin') {
           label.textContent = value + '%';
         } else {
           label.textContent = formatNumber(currentValues[key]);
@@ -280,17 +408,51 @@
       debouncedCalculate();
     }
 
-    function updateLoanRate(value) {
-      currentValues.loanRate = parseFloat(value) / 100;
+    function updateLoanRatio(value) {
+      let v = parseFloat(value);
+      if (isNaN(v)) v = 0;
+      v = Math.min(100, Math.max(0, v));
+      currentValues.loanRatio = v;
+      const label = document.getElementById('loanRatioLabel');
+      if (label) label.textContent = v + '%';
       debouncedCalculate();
     }
 
-    function toggleLoan(value) {
-      currentValues.hasLoan = value === '1';
-      document.getElementById('loanToggleLabel').textContent = currentValues.hasLoan ? '是' : '否';
-      const loanSection = document.getElementById('loanSection');
-      if (loanSection) loanSection.classList.toggle('show', currentValues.hasLoan);
+    function updateLoanRate(value) {
+      let v = parseFloat(value);
+      if (isNaN(v)) v = 0;
+      v = Math.min(10, Math.max(0, v));
+      currentValues.loanRate = v / 100;
+      const label = document.getElementById('loanRateLabel');
+      if (label) label.textContent = v.toFixed(1) + '%';
       debouncedCalculate();
+    }
+
+    function toggleLoan() {
+      currentValues.hasLoan = !currentValues.hasLoan;
+      syncLoanUI();
+      debouncedCalculate();
+    }
+
+    function syncLoanUI() {
+      const on = currentValues.hasLoan;
+      const btn = document.getElementById('loanToggle');
+      if (btn) {
+        btn.classList.toggle('loan-toggle--on', on);
+        btn.setAttribute('aria-checked', on ? 'true' : 'false');
+        const text = btn.querySelector('.loan-toggle__text');
+        if (text) text.textContent = on ? '开' : '关';
+      }
+      const toggleLabel = document.getElementById('loanToggleLabel');
+      if (toggleLabel) toggleLabel.textContent = on ? '是' : '否';
+      ['loanRatioInput', 'loanRateInput'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !on;
+      });
+      ['loanRatioGroup', 'loanRateGroup'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('form-group--off', !on);
+      });
     }
 
     // 具象化类比常量（数据来源：国家测绘局 / 中国地理数据）
@@ -301,7 +463,7 @@
     function calculate() {
       const cat = categories[currentCategory];
       let result = 0, label = '', unit = '', detail = '', decimals = 0;
-      let analogy = '';
+      let subline = '';
 
       if (cat.templateType === 'breakEven') {
         if (currentCategory === 'car') {
@@ -316,6 +478,7 @@
           unit = '公里';
 
           // 具象化类比：绕地球几圈 + 纵穿中国几次
+          let analogy = '';
           if (result > 0) {
             const earthLoops = result / EARTH_EQUATOR_KM;
             const cnNorthSouth = result / CHINA_NORTH_SOUTH_KM;
@@ -323,27 +486,54 @@
               `纵穿中国 <strong>${cnNorthSouth.toFixed(1)}</strong> 次`;
           }
 
-          detail = `
-            <div class="result-detail-row"><span>年折旧</span><span>${fmt(depreciation)}</span></div>
-            <div class="result-detail-row"><span>年保险</span><span>${fmt(currentValues.annualInsurance)}</span></div>
-            <div class="result-detail-row"><span>年油费</span><span>${fmt(currentValues.annualFuel)}</span></div>
-            <div class="result-detail-row"><span>年保养</span><span>${fmt(currentValues.annualMaintenance)}</span></div>
-            <div class="result-detail-row"><span>年停车</span><span>${fmt(currentValues.monthlyParking * 12)}</span></div>
-            ${currentValues.hasLoan ? `<div class="result-detail-row"><span>年贷款利息</span><span>${fmt(loanInterest)}</span></div>` : ''}
-            <div class="result-detail-row result-detail-row--total"><span>年总成本</span><span>${fmt(annualCost)} 元</span></div>
-          `;
+          subline = `年总成本 <strong>¥${fmt(annualCost)}</strong>` +
+            (currentValues.hasLoan ? ` · 贷款利息 <strong>¥${fmt(loanInterest)}</strong>` : '') +
+            (analogy ? ` · ${analogy}` : '');
+
+          detail =
+            detailItem('年折旧', '¥' + fmt(depreciation)) +
+            detailItem('年保险', '¥' + fmt(currentValues.annualInsurance)) +
+            detailItem('年油费', '¥' + fmt(currentValues.annualFuel)) +
+            detailItem('年保养', '¥' + fmt(currentValues.annualMaintenance)) +
+            detailItem('年停车', '¥' + fmt(currentValues.monthlyParking * 12)) +
+            (currentValues.hasLoan ? detailItem('年贷款利息', '¥' + fmt(loanInterest)) : '') +
+            detailItem('年总成本', '¥' + fmt(annualCost), true);
         } else if (currentCategory === 'house') {
-          const months = currentValues.altUnitPrice > 0 ? currentValues.price / currentValues.altUnitPrice : 0;
-          const years = months / 12;
-          result = years;
+          const depreciation = currentValues.useYears > 0
+            ? currentValues.price / currentValues.useYears : 0;
+          const ownershipAnnual = depreciation
+            + currentValues.annualInsurance
+            + currentValues.annualPropertyFee;
+          const loanInterestAnnual = currentValues.hasLoan
+            ? currentValues.price * (currentValues.loanRatio / 100) * currentValues.loanRate : 0;
+          const totalAnnualCost = ownershipAnnual + loanInterestAnnual;
+          const annualRent = currentValues.altUnitPrice * 12;
+          // 总成本口径：累计持有成本 + 累计贷款利息 + 购置价，等效于多少年租金现金流
+          const beYears = annualRent > 0
+            ? (currentValues.price + totalAnnualCost * currentValues.useYears) / annualRent : 0;
+          const beMonths = beYears * 12;
+          result = beYears;
           label = `相当于 ${fmt(currentValues.altUnitPrice)} 元/月房租，住`;
           unit = '年';
           decimals = 1;
-          detail = `
-            <div class="result-detail-row"><span>购房总价</span><span>${fmt(currentValues.price)}</span></div>
-            <div class="result-detail-row"><span>月租金</span><span>${fmt(currentValues.altUnitPrice)}</span></div>
-            <div class="result-detail-row result-detail-row--total"><span>盈亏平衡</span><span>${Math.round(months)} 个月（约 ${years.toFixed(1)} 年）</span></div>
-          `;
+          subline = `购房总价 <strong>¥${fmt(currentValues.price)}</strong> · ` +
+            `年持有+利息 <strong>¥${fmt(totalAnnualCost)}</strong> · ` +
+            `盈亏平衡 <strong>${Math.round(beMonths)}</strong> 个月`;
+          detail =
+            detailItem('购房总价', '¥' + fmt(currentValues.price)) +
+            detailItem('年折旧', '¥' + fmt(depreciation)) +
+            detailItem('年保险', '¥' + fmt(currentValues.annualInsurance)) +
+            detailItem('年物业费', '¥' + fmt(currentValues.annualPropertyFee)) +
+            detailItem('年持有成本', '¥' + fmt(ownershipAnnual)) +
+            (currentValues.hasLoan ? detailItem('年贷款利息', '¥' + fmt(loanInterestAnnual)) : '') +
+            detailItem('月租金', '¥' + fmt(currentValues.altUnitPrice)) +
+            detailItem('盈亏平衡', `${Math.round(beMonths)} 个月（约 ${beYears.toFixed(1)} 年）`, true);
+
+          // 同步"年折旧"的派生字段显示（价格/年限变动时实时更新）
+          const depLabel = document.getElementById('annualDepreciationLabel');
+          if (depLabel) depLabel.textContent = formatNumber(depreciation);
+          const depInput = document.getElementById('annualDepreciationInput');
+          if (depInput) depInput.value = formatNumber(depreciation);
         }
       } else if (cat.templateType === 'savings') {
         const margin = currentValues.margin / 100;
@@ -353,29 +543,27 @@
         result = annualSavings;
         label = '相当于每年省下';
         unit = '元';
-        detail = `
-          <div class="result-detail-row"><span>做饭日成本</span><span>${fmt(currentValues.price)}</span></div>
-          <div class="result-detail-row"><span>外食毛利率</span><span>${currentValues.margin}%</span></div>
-          <div class="result-detail-row"><span>外食日成本</span><span>${fmt(eatOutDailyCost)}</span></div>
-          <div class="result-detail-row"><span>日节省</span><span>${fmt(dailySavings)}</span></div>
-          <div class="result-detail-row result-detail-row--total"><span>年节省</span><span>${fmt(annualSavings)} 元</span></div>
-        `;
+        subline = `日节省 <strong>¥${fmt(dailySavings)}</strong> · 年节省 <strong>¥${fmt(annualSavings)}</strong>`;
+        detail =
+          detailItem('做饭日成本', '¥' + fmt(currentValues.price)) +
+          detailItem('外食毛利率', currentValues.margin + '%') +
+          detailItem('外食日成本', '¥' + fmt(eatOutDailyCost)) +
+          detailItem('日节省', '¥' + fmt(dailySavings)) +
+          detailItem('年节省', '¥' + fmt(annualSavings), true);
       }
-      displayResult(result, label, unit, detail, decimals, analogy);
+      displayResult(result, label, unit, detail, decimals, subline);
     }
 
-    function displayResult(value, label, unit, detail, decimals, analogy) {
+    function detailItem(k, v, isTotal) {
+      return `<div class="calc-detail__item${isTotal ? ' calc-detail__item--total' : ''}">` +
+        `<span class="k">${k}</span><span class="v">${v}</span></div>`;
+    }
+
+    function displayResult(value, label, unit, detail, decimals, subline) {
       document.getElementById('resultLabel').textContent = label;
       document.getElementById('resultUnit').textContent = unit;
       document.getElementById('resultDetail').innerHTML = detail;
-
-      var analogyEl = document.getElementById('resultAnalogy');
-      if (analogy) {
-        analogyEl.innerHTML = analogy;
-        analogyEl.style.display = 'block';
-      } else {
-        analogyEl.style.display = 'none';
-      }
+      document.getElementById('resultSubline').innerHTML = subline;
 
       const target = document.getElementById('resultNumber');
       const dec = decimals || 0;
@@ -428,6 +616,15 @@
     document.querySelectorAll('.category-tab').forEach(tab => {
       tab.addEventListener('click', () => switchCategory(tab.dataset.category));
     });
+
+    // v3.9：吸顶条 top 动态对齐 nav 实际高度（移动端 nav 换行会变高）
+    function syncStickyTop() {
+      const nav = document.querySelector('.nav');
+      const bar = document.querySelector('.calc-sticky');
+      if (nav && bar) bar.style.top = (nav.offsetHeight + 1) + 'px';
+    }
+    window.addEventListener('resize', syncStickyTop);
+    syncStickyTop();
 
     // 滚动动画
     const observer = new IntersectionObserver((entries) => {

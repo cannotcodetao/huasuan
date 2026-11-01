@@ -312,13 +312,140 @@ img { max-width: 100%; display: block; }
   line-height: 1.6;
 }
 
-/* ========== Calculator Page ========== */
-.calc-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2xl);
+/* ========== Calculator Page (v3.9) ========== */
+.calc-sticky {
+  position: sticky;
+  top: 65px;
+  z-index: 90;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
   margin-top: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
+.calc-sticky__main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.calc-sticky__main .result-eyebrow { margin-bottom: 0; }
+.calc-sticky__main .result-number {
+  font-size: clamp(30px, 4.5vw, 46px);
+  margin: 0;
+}
+.calc-sticky__main .result-unit { margin-bottom: 0; }
+.calc-sticky__sub {
+  font-family: var(--font-serif-cn);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  margin-top: var(--space-2xs);
+}
+.calc-sticky__sub strong {
+  color: var(--color-primary);
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+/* 参数三列（语义分栏） */
+.calc-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xl);
+  align-items: start;
+}
+.calc-col__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--color-text);
+  padding-bottom: var(--space-2xs);
+  margin-bottom: var(--space-md);
+}
+.calc-col__head h3 {
+  font-family: var(--font-serif-cn);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.calc-col__head span {
+  font-family: var(--font-sans-en);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+}
+
+/* 列内子分组（如"持有成本"）：视觉层级比列头低一级 */
+.calc-sub {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed var(--color-border);
+}
+.calc-sub__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+.calc-sub__head h4 {
+  font-family: var(--font-serif-cn);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0.02em;
+}
+.calc-sub__head span {
+  font-family: var(--font-sans-en);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* 派生只读字段：保持同尺寸基线，视觉弱化但不跳布局 */
+.form-group--readonly .form-input {
+  background-color: var(--color-bg-soft, #faf8f3);
+  color: var(--color-text-muted);
+  border-style: dashed;
+  cursor: default;
+  user-select: none;
+}
+.form-group--readonly .form-input:focus {
+  outline: none;
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+/* 全宽明细（横排） */
+.calc-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-xl);
+  margin-top: var(--space-xl);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+.calc-detail__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  font-size: 14px;
+}
+.calc-detail__item .k { color: var(--color-text-muted); }
+.calc-detail__item .v {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+.calc-detail__item--total .v {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
 .category-tabs {
   display: flex;
   gap: var(--space-xs);
@@ -365,9 +492,12 @@ img { max-width: 100%; display: block; }
   background: var(--color-surface);
   color: var(--color-text);
   outline: none;
-  transition: border-color 200ms var(--ease-move);
+  transition: border-color 200ms var(--ease-move), opacity 200ms var(--ease-move);
 }
 .form-input:focus { border-color: var(--color-primary); }
+.form-input:disabled { cursor: not-allowed; }
+.form-group--off .form-input { opacity: 0.45; }
+.form-group--off .form-label .value { opacity: 0.45; }
 .form-slider {
   width: 100%;
   -webkit-appearance: none;
@@ -390,14 +520,7 @@ img { max-width: 100%; display: block; }
   margin-top: var(--space-2xs);
 }
 
-/* Result */
-.result-panel {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
-  position: sticky;
-  top: 88px;
-}
+/* 吸顶条结果文字 */
 .result-eyebrow {
   font-family: var(--font-sans-en);
   font-size: 12px;
@@ -408,7 +531,7 @@ img { max-width: 100%; display: block; }
 }
 .result-number {
   font-family: var(--font-mono);
-  font-size: clamp(48px, 7vw, 72px);
+  font-size: clamp(30px, 4.5vw, 46px);
   font-weight: 600;
   color: var(--color-primary);
   line-height: 1;
@@ -421,51 +544,205 @@ img { max-width: 100%; display: block; }
   color: var(--color-text-muted);
   margin-bottom: var(--space-lg);
 }
-.result-detail {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-md);
-  margin-top: var(--space-md);
-}
-.result-detail-row {
-  display: flex;
-  justify-content: space-between;
-  padding: var(--space-xs) 0;
-  font-size: 14px;
-}
-.result-detail-row span:first-child { color: var(--color-text-muted); }
-.result-detail-row span:last-child {
-  font-family: var(--font-mono);
-  color: var(--color-text);
-}
-.result-detail-row--total {
-  border-top: 1px solid var(--color-border);
-  margin-top: var(--space-sm);
-  padding-top: var(--space-sm);
-  font-weight: 500;
-}
-.result-detail-row--total span:last-child { color: var(--color-primary); }
 
-.result-analogy {
-  font-family: var(--font-serif-cn);
+/* 贷款切换按钮 */
+.loan-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.loan-toggle__track {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  position: relative;
+  transition: background 200ms var(--ease-move), border-color 200ms var(--ease-move);
+}
+.loan-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-text);
+  transition: transform 200ms var(--ease-move), background 200ms var(--ease-move);
+}
+.loan-toggle--on .loan-toggle__track {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.loan-toggle--on .loan-toggle__thumb {
+  transform: translateX(20px);
+  background: #FAFAF7;
+}
+.loan-toggle__text {
   font-size: 13px;
   color: var(--color-text-muted);
-  line-height: 1.7;
-  padding: var(--space-sm) var(--space-md);
-  background: rgba(184, 147, 90, 0.06);
+}
+.loan-toggle--on .loan-toggle__text { color: var(--color-primary); font-weight: 500; }
+
+/* ========== 还款方式对比 (v3.13) ========== */
+.repay {
+  margin-top: var(--space-xl);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+.repay__summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 200ms var(--ease-move);
+}
+.repay__summary::-webkit-details-marker { display: none; }
+.repay__summary:hover { background: var(--color-bg); }
+.repay__summary::after {
+  content: '+';
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-text-muted);
+  transition: transform 200ms var(--ease-move);
+}
+.repay[open] > .repay__summary::after { content: '−'; }
+.repay__summary-main {
+  font-family: var(--font-serif-cn);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.repay__summary-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.repay__body { padding: 0 var(--space-lg) var(--space-lg); }
+.repay__notes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.repay__note {
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
 }
-
-/* Loan section */
-.loan-section {
-  display: none;
-  padding: var(--space-md);
-  background: var(--color-bg);
+.repay__note h4 {
+  font-family: var(--font-serif-cn);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-2xs);
+}
+.repay__note h4 span {
+  font-family: var(--font-sans-en);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  margin-left: var(--space-xs);
+  font-weight: 500;
+  color: var(--color-secondary);
+}
+.repay__note p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+.repay__hint {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+.repay__hint b { color: var(--color-primary); font-weight: 500; }
+.repay__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  margin-top: var(--space-sm);
 }
-.loan-section.show { display: block; }
+.repay__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.repay__table th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+}
+.repay__table th[rowspan] { vertical-align: bottom; }
+/* 分组表头（还款方式名称）：跨列居中 + 顶部色条区分两种方式（选择器需覆盖 .repay__table th） */
+.repay__table .repay__group {
+  font-family: var(--font-serif-cn);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+  padding-top: var(--space-sm);
+  padding-bottom: var(--space-2xs);
+}
+.repay__table .repay__group--linear {
+  color: var(--color-primary);
+  box-shadow: inset 0 3px 0 var(--color-primary);
+}
+.repay__table .repay__group--annuity {
+  color: #8A6A33;
+  box-shadow: inset 0 3px 0 var(--color-secondary);
+  border-left: 1px solid var(--color-border);
+}
+.repay__subhead th {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding-top: var(--space-2xs);
+}
+.repay__subhead th:nth-child(4) { border-left: 1px solid var(--color-border); }
+.repay__table td {
+  font-family: var(--font-mono);
+  padding: var(--space-2xs) var(--space-sm);
+  text-align: right;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.repay__table tbody tr:nth-child(even):not(.repay__total) td { background: var(--color-bg); }
+/* 月供列（第 2/5 列）：加粗突出 + 左侧组间分隔线 */
+.repay__table td:nth-child(2),
+.repay__table td:nth-child(5) {
+  font-weight: 600;
+  border-left: 1px solid var(--color-border);
+}
+.repay__table tbody tr:last-child td { border-bottom: none; }
+.repay__table td:first-child,
+.repay__table th:first-child { text-align: center; font-family: var(--font-sans-cn); }
+.repay__eq { color: var(--color-secondary); }
+.repay__total td {
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-bg);
+  border-top: 2px solid var(--color-text);
+}
+.repay__footnote {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
 
 /* ========== Methodology Page ========== */
 .method-content {
@@ -546,15 +823,21 @@ img { max-width: 100%; display: block; }
 }
 
 /* ========== Responsive ========== */
+@media (max-width: 1024px) {
+  .calc-cols { grid-template-columns: 1fr 1fr; }
+}
 @media (max-width: 768px) {
   .hero__grid,
-  .calc-layout {
+  .calc-cols {
     grid-template-columns: 1fr;
   }
   .card-grid,
   .value-grid {
     grid-template-columns: 1fr;
   }
+  .repay__notes { grid-template-columns: 1fr; }
+  .repay__body { padding: 0 var(--space-md) var(--space-md); }
+  .repay__summary { padding: var(--space-sm) var(--space-md); }
   .nav__inner {
     flex-wrap: wrap;
     height: auto;
@@ -569,7 +852,4 @@ img { max-width: 100%; display: block; }
     flex-wrap: wrap;
   }
   .nav__menu a { font-size: 12px; }
-  .result-panel {
-    position: static;
-  }
 }

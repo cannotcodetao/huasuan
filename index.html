@@ -3,64 +3,3690 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>划算 — 跳转中</title>
-  <meta http-equiv="refresh" content="0; url=cashflow.html">
-  <link rel="canonical" href="cashflow.html">
+  <title>划算 — 财产总览</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <!-- Chart.js v4 CDN（Phase 9 调研结论：68KB gzip，MIT，唯一引入项） -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    html, body {
+    /* ========== v3.4 合并首页 / v3.6 布局重排 ========== */
+    /* 结构：汇总四卡（全宽）→ 中栏（收入50% / 支出50%）→ 底栏（未来计划全宽） */
+
+    /* 汇总四卡 */
+
+    .sum__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-md);
+      margin-top: var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+    .sum__card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      text-align: center;
+    }
+    .sum__label {
+      font-family: var(--font-sans-en);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+    .sum__value {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+    .sum__value--gold { color: var(--color-secondary); }
+    .sum__value--danger { color: var(--color-error); }
+
+    /* 中部：v3.16 改上下两段全宽（月收入一段 / 月支出一段），段内项目两列网格 */
+    .layout-middle {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-xl);
+      align-items: start;
+      margin-bottom: var(--space-xl);
+    }
+    .layout-col { min-width: 0; }
+
+    /* 底部：未来计划全宽 */
+    .layout-bottom {
+      display: block;
+      width: 100%;
+    }
+
+    /* v3.8：中段「数据总览」(layout-center) 全宽 + 三行 Grid；视觉规格与 layout-bottom 一致 */
+    .layout-center {
+      display: block;
+      width: 100%;
+      margin-top: var(--space-xl);
+      margin-bottom: var(--space-xl);
+    }
+    /* Grid 行通用：间距与底栏 plans__stats 同 */
+    .lc-grid {
+      display: grid;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-md);
+    }
+    .lc-grid:last-child {
+      margin-bottom: 0;
+    }
+    /* 行 1 / 行 3：1fr 1fr 两列 */
+    .lc-grid--pair {
+      grid-template-columns: 1fr 1fr;
+    }
+    /* 行 2：单列全宽 */
+    .lc-grid--single {
+      grid-template-columns: 1fr;
+    }
+    /* 布局中心/底栏的外层统一宽度与中栏一致（居中）：继承父级 cashflow-app 盒 */
+    .layout-center > *,
+    .layout-bottom > * {
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
+    }
+
+    /* 分栏标题（每个子列一个） */
+    .col-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: var(--space-xs);
+      border-bottom: 2px solid var(--color-text);
+      margin-bottom: var(--space-md);
+    }
+    .col-head__eyebrow {
+      font-family: var(--font-sans-en);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--color-secondary);
+    }
+    .col-head__title {
+      font-family: var(--font-serif-cn);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--color-text);
       margin: 0;
-      padding: 0;
-      min-height: 100vh;
+    }
+
+    /* ========== 中部左：月收入 ========== */
+    /* (cf__section / cf__income-card 等使用已定义样式) */
+
+    /* ========== 中部右：月支出 ========== */
+    /* (贷款汇总卡 cf__loan-summary、总资产卡、数据管理栏、图表 跟支出列 走) */
+
+    /* ========== 底部：未来计划（全宽） ========== */
+    /* 全宽时统计卡改为 4 列等分（>1024px） */
+    .layout-bottom .plans__stats {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .cf__snapshot {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+      padding: var(--space-xs) var(--space-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .cf__snapshot-date {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+
+    /* 月份导航按钮 & 输入（v3.5 / v3.6 保留） */
+    .cf__month-btn {
+      width: 24px; height: 24px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .cf__month-btn:hover { background: rgba(45, 74, 62, 0.08); border-color: var(--color-primary); }
+    .cf__month-btn:active { transform: scale(0.94); }
+    .cf__month-input {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 3px 6px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-surface);
+      color: var(--color-primary);
+      width: 120px;
+      outline: none;
+    }
+    .cf__month-input:focus { border-color: var(--color-secondary); }
+
+    .cf__section { margin-bottom: var(--space-lg); }
+    .cf__section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-sm);
+      padding-bottom: var(--space-xs);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .cf__section-title {
+      font-family: var(--font-serif-cn);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .cf__section-total {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    /* 删除按钮 — 红底白叉圆形，12×12px，卡片左上角（v3.3 确认稿） */
+    .cf__delete {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #A85A4A;
+      color: #fff;
+      border: none;
+      font-size: 8px;
+      line-height: 1;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      color: #2D4A3E;
-      background: #FAFAF7;
+      flex-shrink: 0;
+      transition: background 200ms var(--ease-move);
+      padding: 0;
+      z-index: 1;
     }
-    .redirect-card {
-      text-align: center;
-      padding: 48px 32px;
+    .cf__delete:hover { background: #8B3A2A; }
+
+    /* 通用字段（高度保持 38px：padding 10px + 14px 字号 + 2px 边框） */
+    .cf__field {
+      padding: 10px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 200ms var(--ease-move);
     }
-    .redirect-card__title {
-      font-size: 28px;
+    .cf__field:focus { border-color: var(--color-primary); }
+    .cf__field-name {
+      flex: 1;
+      min-width: 0;
+      font-family: var(--font-sans-cn);
+    }
+    .cf__field-amount {
+      width: 65px;          /* v3.4：金额框缩窄至 65px（高度不变） */
+      font-family: var(--font-mono);
+      text-align: right;
+      padding: 10px 6px;
+    }
+    .cf__field-amount[readonly] {
+      background: #F8F7F3;
+      color: var(--color-text-muted);
+      cursor: not-allowed;
+    }
+    .cf__field--rate { width: 58px; font-family: var(--font-mono); text-align: right; padding: 10px 6px; }
+    .cf__field--months { width: 64px; font-family: var(--font-mono); text-align: right; padding: 10px 6px; }
+    .cf__field--total { width: 96px; font-family: var(--font-mono); text-align: right; padding: 10px 6px; }
+    .cf__field--rate:disabled { background: #F8F7F3; color: var(--color-text-muted); }
+
+    .cf__select {
+      padding: 10px 24px 10px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+      cursor: pointer;
+      font-family: var(--font-sans-cn);
+      transition: border-color 200ms var(--ease-move);
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%238A8A8A' stroke-width='1.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      flex-shrink: 0;
+    }
+    .cf__select:focus { border-color: var(--color-primary); }
+    .cf__select--loan { font-family: var(--font-sans-cn); }
+
+    /* 收入卡片 */
+    .cf__income-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-sm);
+      padding-left: 24px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-xs);
+    }
+
+    /* 支出卡片（固定：单行；变动：展开贷款详情） */
+    .cf__expense-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    /* v3.16：收支项两列网格（每行 2 项，gap 替代卡片 margin-bottom） */
+    #incomeList,
+    #expenseList {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xs);
+      align-items: start;
+    }
+    #incomeList .cf__income-card,
+    #expenseList .cf__expense-card { margin-bottom: 0; }
+    .cf__expense-main {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-sm);
+      padding-left: 24px;
+    }
+
+    /* 贷款开关（v3.4.1：变动支出主行，开启才展开计算区） */
+    .cf__loan-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 12px;
+      color: var(--color-text-muted);
+      user-select: none;
+    }
+    .cf__loan-toggle input {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+      margin: 0;
+    }
+    .cf__loan-toggle--on span { color: var(--color-primary); font-weight: 500; }
+
+    /* 当前期输入框（v3.4.2；v3.16 修复两位数被调节箭头裁剪：padding 收窄到 4px） */
+    .cf__field--period { width: 56px; padding: 10px 4px; font-family: var(--font-mono); text-align: right; }
+
+    /* 还款日输入框（v3.15：仅记录展示；v3.16 同步修复两位数裁剪） */
+    .cf__field--day { width: 56px; padding: 10px 4px; font-family: var(--font-mono); text-align: right; }
+
+    /* 贷款进度行（第 N/M 期 · 已还/剩余本金） */
+    .cf__loan-progress {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(45, 74, 62, 0.18);
+      font-size: 12px;
+      color: var(--color-text-muted);
+      letter-spacing: 0.02em;
+    }
+    .cf__loan-progress--muted { color: var(--color-text-muted); opacity: 0.5; }
+
+    /* 明细表当前期高亮行 */
+    .cf__detail-row--current td {
+      background: rgba(184, 147, 90, 0.14);
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    /* 贷款汇总卡（v3.4.3：所有贷款 本月/剩余/全期 合计） */
+    .cf__loan-summary {
+      margin-top: var(--space-sm, 12px);
+      padding: 14px 16px;
+      background: linear-gradient(135deg, rgba(45, 74, 62, 0.05), rgba(184, 147, 90, 0.07));
+      border: 1px solid rgba(45, 74, 62, 0.14);
+      border-radius: 12px;
+    }
+    .cf__ls-head {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+    .cf__ls-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto 1fr;
+      align-items: baseline;
+      gap: 6px 10px;
+      padding: 5px 0;
+      font-size: 13px;
+    }
+    .cf__ls-row + .cf__ls-row { border-top: 1px dashed rgba(45, 74, 62, 0.14); }
+    .cf__ls-label { color: var(--color-text-muted); white-space: nowrap; }
+    .cf__ls-val { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+    .cf__ls-val--gold { color: var(--color-secondary); }
+
+    /* 变动支出 — 贷款详情区 */
+    .cf__loan {
+      background: #F8F7F3;
+      border-top: 1px solid var(--color-border);
+      padding: var(--space-sm);
+    }
+    .cf__loan-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      align-items: center;
+    }
+    .cf__loan-label { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
+    .cf__loan-result {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 14px;
+      padding-top: var(--space-xs);
+      margin-top: var(--space-xs);
+      border-top: 1px dashed var(--color-border);
+    }
+    .cf__loan-result-label { font-size: 12px; color: var(--color-text-muted); }
+    .cf__loan-result-value {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+    .cf__loan-result-value--gold { color: var(--color-secondary); }
+    .cf__loan-result-value--muted { color: var(--color-text-muted); font-weight: 500; }
+
+    .cf__detail-btn {
+      padding: 4px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      font-size: 12px;
+      font-family: var(--font-sans-cn);
+      cursor: pointer;
+      transition: all 200ms var(--ease-move);
+      margin-left: auto;
+    }
+    .cf__detail-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    /* 明细展开面板 */
+    .cf__detail-panel { display: none; }
+    .cf__detail-panel--open { display: block; }
+    .cf__detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      margin-top: var(--space-xs);
+    }
+    .cf__detail-table th {
+      text-align: right;
+      padding: 4px 8px;
+      color: var(--color-text-muted);
       font-weight: 500;
-      margin: 0 0 8px;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 11px;
+      font-family: var(--font-sans-cn);
+    }
+    .cf__detail-table th:first-child { text-align: center; }
+    .cf__detail-table td {
+      text-align: right;
+      padding: 3px 8px;
+      color: var(--color-text);
+    }
+    .cf__detail-table td:first-child { text-align: center; color: var(--color-text-muted); }
+    .cf__detail-table td:last-child { color: var(--color-secondary); }
+    .cf__detail-ellipsis {
+      text-align: center;
+      color: var(--color-text-muted);
+      padding: 4px;
+      font-size: 12px;
+    }
+
+    /* 添加按钮 */
+    .cf__add-btn {
+      width: 100%;
+      padding: 10px;
+      border: 1px dashed var(--color-border);
+      background: transparent;
+      color: var(--color-text-muted);
+      font-size: 13px;
+      font-family: var(--font-sans-cn);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 200ms var(--ease-move);
+      margin-top: var(--space-xs);
+    }
+    .cf__add-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      border-style: solid;
+    }
+
+    /* 数据管理栏 */
+    .cf__databar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      margin-top: var(--space-lg);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .cf__databar-label {
+      font-family: var(--font-sans-en);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-secondary);
+    }
+    .cf__databar-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: 12px;
+      font-family: var(--font-sans-cn);
+      cursor: pointer;
+      transition: all 200ms var(--ease-move);
+    }
+    .cf__databar-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+    .cf__databar-btn--danger:hover {
+      border-color: var(--color-error);
+      color: var(--color-error);
+    }
+    .cf__databar-btn--accent {
+      background: rgba(184, 147, 90, 0.12);
+      border-color: rgba(184, 147, 90, 0.32);
+      color: var(--color-secondary);
+      font-weight: 600;
+    }
+    .cf__databar-btn--accent:hover {
+      border-color: var(--color-secondary);
+      background: rgba(184, 147, 90, 0.2);
+      color: var(--color-secondary);
+    }
+    .cf__databar-location {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--color-text-muted);
+      margin-left: auto;
+      padding: 6px 10px;
+      background: #F8F7F3;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+    }
+
+    /* v3.16：本地数据文件条（File System Access API；不支持时 hidden） */
+    .cf__databar--file { margin-top: var(--space-xs); }
+    .cf__file-status {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      margin-right: auto;
+    }
+    .cf__file-status b {
+      font-family: var(--font-mono);
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    /* 图表 */
+    /* ========== v3.7 子区块：右栏内 section + 2×3 stats 网格（与未来计划同格式） ========== */
+    .sub-block { margin-top: var(--space-lg); }
+    .sub-block + .sub-block { margin-top: var(--space-xl); }
+    .sub-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: var(--space-xs);
+      border-bottom: 2px solid var(--color-text);
+      margin-bottom: var(--space-md);
+    }
+    .sub-head__title {
+      font-family: var(--font-serif-cn);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text);
+      margin: 0;
+    }
+    /* v3.8：进入全宽「数据总览」段后，子段头（贷款汇总/总资产/两图表）加大到 18px，与 col-head 尺寸更协调 */
+    .layout-center .sub-head__title { font-size: 18px; }
+    .layout-center .sub-head { margin-bottom: var(--space-md); }
+    .sub-head__eyebrow {
+      font-family: var(--font-sans-en);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-secondary);
+    }
+    /* 与 plans__stats 完全一致：右栏内默认 2 列，与未来计划底栏视觉同构 */
+    .sub-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-sm);
+    }
+    /* 子卡：别名类 + 直接复用 plans__stat，保证未来计划&汇总&资产卡共用一套视觉 */
+    .sub-stat,
+    .sub-stats .plans__stat {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-md);
+    }
+    .sub-stat-label {
+      font-family: var(--font-sans-en);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 2px;
+    }
+    .sub-stat-value {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--color-primary);
+      line-height: 1.1;
+    }
+    .sub-stat-value--gold { color: var(--color-secondary); }
+    .sub-stat-value--muted { color: var(--color-text); font-size: 18px; font-weight: 500; }
+    .sub-stat-sub { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
+
+    /* 图表块：从原 border-top + padding 改为 section header + canvas 本体，视觉与 plans 对齐 */
+    .cf__chart-block {
+      margin-top: var(--space-lg);
+    }
+    .cf__chart-wrap { position: relative; height: 200px; }
+    .cf__chart-wrap--bar { height: 220px; }
+
+    /* ========== 右栏：未来计划 ========== */
+
+    .plans__stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+    }
+    .plans__stat {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-md);
+    }
+    .plans__stat-label {
+      font-family: var(--font-sans-en);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 2px;
+    }
+    .plans__stat-value {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--color-primary);
+      line-height: 1.1;
+    }
+    .plans__stat-value--secondary { color: var(--color-secondary); }
+    .plans__stat-value--muted { color: var(--color-text); font-size: 18px; }
+    .plans__stat-sub { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
+
+    /* 预测设置条 */
+    .plans__forecast-settings {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-xs) var(--space-md);
+      background: rgba(184, 147, 90, 0.06);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-md);
+    }
+    .plans__forecast-field {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .plans__forecast-label {
+      font-family: var(--font-sans-en);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .plans__forecast-value {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+    .plans__forecast-hint { font-size: 11px; color: var(--color-text-muted); }
+    .plans__forecast-select {
+      padding: 6px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+      cursor: pointer;
+    }
+    .plans__forecast-select:focus { border-color: var(--color-primary); }
+
+    /* v3.12 利率参考卡 */
+    .rates {
+      margin-top: var(--space-md);
+      padding: var(--space-lg);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+    }
+    .rates__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 2px var(--space-md);
+      border-bottom: 2px solid var(--color-text);
+      padding-bottom: var(--space-2xs);
+      margin-bottom: var(--space-md);
+    }
+    .rates__title {
+      font-family: var(--font-serif-cn);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .rates__eyebrow {
+      font-family: var(--font-sans-en);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-secondary);
+    }
+    .rates__updated { font-size: 11px; color: var(--color-text-muted); font-family: var(--font-mono); }
+    .rates__body {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: var(--space-lg);
+      align-items: start;
+    }
+    .rates__group-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: var(--space-xs);
+    }
+    .rates__group-label em { font-style: normal; font-weight: 400; font-size: 11px; color: var(--color-text-muted); margin-left: 6px; }
+    .rates__rows {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-2xs) var(--space-lg);
+    }
+    .rates__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 4px 0;
+      border-bottom: 1px dashed var(--color-border);
+    }
+    .rates__row-term { font-size: 12px; color: var(--color-text-muted); }
+    .rates__row-rate {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+    .rates__source {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      margin-top: var(--space-md);
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-sm);
+    }
+    @media (max-width: 768px) {
+      .rates__body { grid-template-columns: 1fr; gap: var(--space-md); }
+    }
+
+    /* v3.10 退休测算卡 */
+    .retire {
+      margin-top: var(--space-md);
+      padding: var(--space-lg);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+    }
+    .retire__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 2px var(--space-md);
+      border-bottom: 2px solid var(--color-text);
+      padding-bottom: var(--space-2xs);
+      margin-bottom: var(--space-md);
+    }
+    .retire__title {
+      font-family: var(--font-serif-cn);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .retire__logic {
+      flex: 1;
+      min-width: 240px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+    }
+    .retire__eyebrow {
+      font-family: var(--font-sans-en);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-secondary);
+    }
+    .retire__body {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 2fr;
+      gap: var(--space-lg);
+      align-items: center;
+    }
+    .retire__date {
+      font-family: var(--font-mono);
+      font-size: clamp(26px, 3.5vw, 38px);
+      font-weight: 600;
+      color: var(--color-primary);
+      line-height: 1.15;
+    }
+    .retire__date--na { font-size: 22px; }
+    .retire__sub { font-size: 12px; color: var(--color-text-muted); margin-top: 4px; line-height: 1.6; }
+    .retire__facts { display: flex; gap: var(--space-xl); flex-wrap: wrap; }
+    .retire__fact-k {
+      display: block;
+      font-size: 11px;
+      color: var(--color-text-muted);
+      margin-bottom: 2px;
+    }
+    .retire__fact-v {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .retire__fact-v--gold { color: var(--color-secondary); }
+    .retire__progress { margin-top: var(--space-md); }
+    .retire__progress-bar {
+      height: 6px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .retire__progress-fill {
+      height: 100%;
+      background: var(--color-primary);
+      width: 0%;
+      transition: width 400ms ease;
+    }
+    .retire__progress-text { font-size: 12px; color: var(--color-text-muted); margin-top: 4px; }
+    .retire__inputs {
+      display: flex;
+      gap: var(--space-lg) var(--space-xl);
+      margin-top: var(--space-md);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .retire__input {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+    .retire__input input {
+      width: 88px;
+      padding: 7px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+    }
+    .retire__input input:focus { border-color: var(--color-primary); }
+    .retire__input em { font-style: normal; font-size: 11px; color: var(--color-text-muted); }
+    .retire__note {
+      font-family: var(--font-serif-cn);
+      font-size: 12px;
+      color: var(--color-text-muted);
+      line-height: 1.8;
+      margin-top: var(--space-md);
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-sm);
+    }
+    @media (max-width: 768px) {
+      .retire__body { grid-template-columns: 1fr; gap: var(--space-md); }
+    }
+
+    /* 工具栏 */
+    .plans__toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+    .plans__sort-tabs {
+      display: flex;
+      gap: var(--space-xs);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .plans__sort-tab {
+      padding: 6px 12px;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      cursor: pointer;
+      transition: all 200ms var(--ease-move);
+      background: transparent;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+      font-family: inherit;
+    }
+    .plans__sort-tab:hover { color: var(--color-text); }
+    .plans__sort-tab.active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+      font-weight: 500;
+    }
+
+    /* 计划卡片 */
+    .plans__list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .plans__card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md) var(--space-md) var(--space-md) var(--space-lg);
+      position: relative;
+      transition: transform 300ms var(--ease-enter), box-shadow 300ms var(--ease-enter);
+      overflow: hidden;
+    }
+    .plans__card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(45, 74, 62, 0.06);
+    }
+    .plans__card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--color-border);
+    }
+    .plans__card--priority-1::before { background: var(--color-primary); }
+    .plans__card--priority-2::before { background: var(--color-secondary); }
+    .plans__card--priority-3::before { background: var(--color-text-muted); }
+    .plans__card--completed { opacity: 0.65; }
+    .plans__card--completed .plans__card-name { text-decoration: line-through; }
+
+    .plans__card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xs);
+    }
+    .plans__card-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .plans__card-name {
+      font-family: var(--font-serif-cn);
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .plans__priority-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 10px;
+      font-weight: 500;
       letter-spacing: 0.05em;
     }
-    .redirect-card__title span {
-      color: #B8935A;
-    }
-    .redirect-card__desc {
-      font-size: 14px;
-      color: #8A8A8A;
-      margin: 0 0 24px;
-    }
-    .redirect-card__link {
+    .plans__priority-badge--1 { background: rgba(45, 74, 62, 0.12); color: var(--color-primary); }
+    .plans__priority-badge--2 { background: rgba(184, 147, 90, 18); color: var(--color-secondary); }
+    .plans__priority-badge--3 { background: rgba(138, 138, 138, 0.15); color: var(--color-text-muted); }
+    .plans__status-badge {
       display: inline-block;
-      padding: 10px 24px;
-      border: 1px solid #2D4A3E;
-      border-radius: 4px;
-      color: #2D4A3E;
-      text-decoration: none;
-      font-size: 14px;
-      transition: all 200ms ease;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
     }
-    .redirect-card__link:hover {
-      background: #2D4A3E;
-      color: #FAFAF7;
+    .plans__status-badge--active { background: rgba(45, 74, 62, 0.08); color: var(--color-primary); }
+    .plans__status-badge--completed { background: rgba(45, 74, 62, 0.18); color: var(--color-primary); font-weight: 600; }
+    .plans__status-badge--paused { background: rgba(184, 147, 90, 0.18); color: var(--color-secondary); }
+
+    .plans__card-actions { display: flex; gap: 6px; }
+    .plans__action-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 200ms var(--ease-move);
+      padding: 0;
+      font-family: inherit;
+    }
+    .plans__action-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .plans__action-btn--danger:hover { border-color: var(--color-error); color: var(--color-error); }
+
+    .plans__card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xs) var(--space-md);
+      margin-top: var(--space-xs);
+    }
+    .plans__card-field { display: flex; flex-direction: column; gap: 1px; }
+    .plans__field-label {
+      font-family: var(--font-sans-en);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .plans__field-value {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--color-text);
+      font-weight: 500;
+    }
+    .plans__field-value--primary { color: var(--color-primary); }
+    .plans__field-value--warning { color: var(--color-error); }
+    .plans__field-value--muted { color: var(--color-text-muted); }
+    .plans__card-note {
+      margin-top: var(--space-xs);
+      padding-top: var(--space-xs);
+      border-top: 1px dashed var(--color-border);
+      font-size: 12px;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* 空状态 */
+    .plans__empty {
+      text-align: center;
+      padding: var(--space-2xl) var(--space-md);
+      color: var(--color-text-muted);
+    }
+    .plans__empty-title {
+      font-family: var(--font-serif-cn);
+      font-size: 20px;
+      margin-bottom: var(--space-xs);
+      color: var(--color-text);
+    }
+    .plans__empty-desc { font-size: 13px; margin-bottom: var(--space-md); }
+
+    /* 模态框 */
+    .plans__modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(26, 26, 26, 0.55);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: var(--space-md);
+    }
+    .plans__modal-overlay.show { display: flex; }
+    .plans__modal {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+    }
+    .plans__modal-title {
+      font-family: var(--font-serif-cn);
+      font-size: 22px;
+      font-weight: 500;
+      margin-bottom: var(--space-lg);
+      color: var(--color-text);
+    }
+    .plans__modal-close {
+      float: right;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      font-size: 22px;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      line-height: 1;
+      margin-top: -8px;
+      margin-right: -8px;
+    }
+    .plans__modal-close:hover { color: var(--color-text); }
+    .plans__form-group { margin-bottom: var(--space-md); }
+    .plans__form-label {
+      display: block;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-xs);
+    }
+    .plans__form-input,
+    .plans__form-select,
+    .plans__form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-family: var(--font-mono);
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 200ms var(--ease-move);
+    }
+    .plans__form-input:focus,
+    .plans__form-select:focus,
+    .plans__form-textarea:focus { border-color: var(--color-primary); }
+    .plans__form-textarea {
+      font-family: var(--font-sans-cn);
+      min-height: 64px;
+      resize: vertical;
+    }
+    .plans__priority-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-xs);
+    }
+    .plans__priority-option {
+      padding: 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      cursor: pointer;
+      text-align: center;
+      font-size: 14px;
+      transition: all 200ms var(--ease-move);
+      font-family: inherit;
+      color: var(--color-text);
+    }
+    .plans__priority-option--selected[data-priority="1"] {
+      border-color: var(--color-primary);
+      background: rgba(45, 74, 62, 0.08);
+      color: var(--color-primary);
+      font-weight: 500;
+    }
+    .plans__priority-option--selected[data-priority="2"] {
+      border-color: var(--color-secondary);
+      background: rgba(184, 147, 90, 0.10);
+      color: var(--color-secondary);
+      font-weight: 500;
+    }
+    .plans__priority-option--selected[data-priority="3"] {
+      border-color: var(--color-text-muted);
+      background: rgba(138, 138, 138, 0.10);
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+    .plans__modal-actions {
+      display: flex;
+      gap: var(--space-sm);
+      margin-top: var(--space-lg);
+      justify-content: flex-end;
+    }
+
+    /* ========== 响应式（v3.6 / v3.8） ========== */
+    @media (max-width: 1024px) {
+      /* 中栏：收入在上、支出在下 */
+      .layout-middle { grid-template-columns: 1fr; }
+      /* 底栏：未来计划 4 统计卡 → 2×2 */
+      .layout-bottom .plans__stats { grid-template-columns: repeat(2, 1fr); }
+      /* v3.8：layout-center 三行 Grid → 单列堆叠（避免平板上 2 列过窄） */
+      .lc-grid--pair { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .sum__grid { grid-template-columns: repeat(2, 1fr); }
+      .cf__loan-result { gap: 4px 10px; }
+      .cf__databar { flex-direction: column; align-items: stretch; }
+      .cf__databar-btn { text-align: center; }
+      .cf__databar-location { margin-left: 0; text-align: center; }
+      .plans__toolbar { flex-direction: column; align-items: stretch; }
+      .plans__modal { padding: var(--space-lg); }
+      /* 底栏：未来计划统计卡改为 1 列堆叠，手机竖屏信息密度优先 */
+      .layout-bottom .plans__stats { grid-template-columns: 1fr; }
+      /* v3.7：子块（贷款汇总/总资产）的 2×3 → 单列堆叠 */
+      .sub-stats { grid-template-columns: 1fr; }
+      /* v3.16：收支项两列网格 → 手机单列 */
+      #incomeList,
+      #expenseList { grid-template-columns: 1fr; }
+      .cf__file-status { margin-right: 0; text-align: center; }
     }
   </style>
+  <script>
+    // CountUp 动画（与 calculator.html 一致，参考 CountUp.js v2.8.1 简化实现，MIT）
+    function CountUp(target, endVal, options) {
+      this.el = typeof target === 'string' ? document.getElementById(target) : target;
+      this.endVal = endVal;
+      this.options = Object.assign({
+        startVal: 0, duration: 2, useEasing: true, separator: ',',
+        decimal: '.', decimalPlaces: 0, prefix: '', suffix: ''
+      }, options || {});
+      this.duration = this.options.duration * 1000;
+      this.startVal = this.options.startVal;
+      this.frameVal = this.options.startVal;
+      this.error = '';
+      this.rAF = null;
+      this.startTime = null;
+      if (!this.el) this.error = '[CountUp] target is null';
+    }
+    CountUp.prototype.easeOutExpo = function(t, b, c, d) {
+      return c * (1 - Math.pow(2, -10 * t / d)) + b;
+    };
+    CountUp.prototype.formatNumber = function(n) {
+      var neg = n < 0 ? '-' : '';
+      var fixed = Math.abs(n).toFixed(this.options.decimalPlaces);
+      var parts = fixed.split('.');
+      var intPart = parts[0];
+      var decPart = parts.length > 1 ? this.options.decimal + parts[1] : '';
+      if (this.options.separator) {
+        intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, this.options.separator);
+      }
+      return neg + this.options.prefix + intPart + decPart + this.options.suffix;
+    };
+    CountUp.prototype.printValue = function(n) {
+      if (this.el) this.el.innerHTML = this.formatNumber(n);
+    };
+    CountUp.prototype.count = function(timestamp) {
+      if (!this.startTime) this.startTime = timestamp;
+      var progress = timestamp - this.startTime;
+      if (this.options.useEasing) {
+        this.frameVal = this.easeOutExpo(progress, this.startVal, this.endVal - this.startVal, this.duration);
+      } else {
+        this.frameVal = this.startVal + (this.endVal - this.startVal) * (progress / this.duration);
+      }
+      if (this.endVal >= this.startVal ? this.frameVal > this.endVal : this.frameVal < this.endVal) {
+        this.frameVal = this.endVal;
+      }
+      this.frameVal = Number(this.frameVal.toFixed(this.options.decimalPlaces));
+      this.printValue(this.frameVal);
+      if (progress < this.duration) {
+        this.rAF = requestAnimationFrame(this.count.bind(this));
+      } else {
+        this.printValue(this.endVal);
+        this.rAF = null;
+        if (this.options.onCompleteCallback) this.options.onCompleteCallback();
+      }
+    };
+    CountUp.prototype.start = function(callback) {
+      if (this.error) return;
+      if (callback) this.options.onCompleteCallback = callback;
+      this.startTime = null;
+      this.frameVal = this.startVal;
+      this.rAF = requestAnimationFrame(this.count.bind(this));
+    };
+  </script>
 </head>
 <body>
-  <div class="redirect-card">
-    <h1 class="redirect-card__title">划<span>算</span></h1>
-    <p class="redirect-card__desc">正在跳转到现金流页…</p>
-    <a class="redirect-card__link" href="cashflow.html">手动跳转 →</a>
+
+  <!-- 导航（v3.4：合并页即首页，导航 3 项） -->
+  <nav class="nav">
+    <div class="container nav__inner">
+      <a href="index.html" class="nav__logo">划<span>算</span></a>
+      <ul class="nav__menu">
+        <li><a href="index.html" class="active">首页</a></li>
+        <li><a href="calculator.html">消费决策</a></li>
+        <li><a href="methodology.html">方法论</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="section section--tight">
+    <div class="container">
+      <div class="eyebrow fade-up">HUASUAN · PERSONAL FINANCE</div>
+      <h1 class="section-title fade-up">财产健康，看得见</h1>
+      <p class="section-subtitle fade-up">先看清每月现金流，再规划未来支出——月结余直接驱动每笔计划的达成预测。所有数据本地保存，不上传任何服务器。</p>
+
+      <!-- 汇总四卡 -->
+      <div class="sum__grid fade-up">
+        <div class="sum__card">
+          <div class="sum__label">月收入</div>
+          <div class="sum__value" id="sumIncome">¥0</div>
+        </div>
+        <div class="sum__card">
+          <div class="sum__label">月支出</div>
+          <div class="sum__value sum__value--gold" id="sumExpense">¥0</div>
+        </div>
+        <div class="sum__card">
+          <div class="sum__label">月结余</div>
+          <div class="sum__value" id="sumBalance">¥0</div>
+        </div>
+        <div class="sum__card">
+          <div class="sum__label">结余率</div>
+          <div class="sum__value sum__value--gold" id="sumRate">0%</div>
+        </div>
+      </div>
+
+      <!-- ========== v3.16 中栏：月收入 / 月支出 上下两段全宽，段内项目两列网格 ========== -->
+      <div class="layout-middle">
+
+        <!-- ========== 上：月收入 ========== -->
+        <div class="layout-col fade-up">
+          <div class="col-head">
+            <h2 class="col-head__title">月收入</h2>
+            <span class="col-head__eyebrow">INCOME</span>
+          </div>
+
+          <!-- 月份导航（v3.6：快照栏精简——删标签和名字，保留 ◀ 月 ▶ + 最后保存时间） -->
+          <div class="cf__snapshot">
+            <button class="cf__month-btn" id="monthPrev" title="上月">◀</button>
+            <input type="month" class="cf__month-input" id="monthInput">
+            <button class="cf__month-btn" id="monthNext" title="下月">▶</button>
+            <span class="cf__snapshot-date" id="snapshotDate"></span>
+          </div>
+
+          <!-- 收入项列表 -->
+          <div class="cf__section" style="margin-bottom:0">
+            <div class="cf__section-header">
+              <span class="cf__section-title">收入项</span>
+              <span class="cf__section-total" id="incomeTotal">¥0</span>
+            </div>
+            <div id="incomeList"></div>
+            <button class="cf__add-btn" id="addIncomeBtn">+ 添加收入项</button>
+          </div>
+        </div>
+
+        <!-- ========== 下：月支出 ========== -->
+        <div class="layout-col fade-up">
+          <div class="col-head">
+            <h2 class="col-head__title">月支出</h2>
+            <span class="col-head__eyebrow">EXPENSE</span>
+          </div>
+          <!-- 支出项列表（v3.8：右栏从现在开始只保留支出项；其余 5 模块整体搬家到 layout-center 全宽段） -->
+          <div class="cf__section">
+            <div class="cf__section-header">
+              <span class="cf__section-title">支出项</span>
+              <span class="cf__section-total" id="expenseTotal">¥0</span>
+            </div>
+            <div id="expenseList"></div>
+            <button class="cf__add-btn" id="addExpenseBtn">+ 添加支出项</button>
+          </div>
+        </div>
+      </div><!-- /.layout-middle -->
+
+      <!-- ========== v3.8 中段：数据总览（5 模块出右栏 → 全宽三行 Grid；结构同未来计划段） ========== -->
+      <div class="layout-center">
+        <div class="col-head">
+          <h2 class="col-head__title">数据总览</h2>
+          <span class="col-head__eyebrow">DATA OVERVIEW</span>
+        </div>
+
+        <!-- 第 1 行：贷款汇总（左 50%） / 总资产（右 50%） -->
+        <div class="lc-grid lc-grid--pair">
+          <!-- 贷款汇总（v3.4.3 / v3.7：6 stat 卡；无贷款自动隐藏） -->
+          <div>
+            <div class="cf__loan-summary" id="loanSummary" style="display:none"></div>
+          </div>
+          <!-- 总资产（v3.5 / v3.7：6 stat 卡） -->
+          <div>
+            <div class="cf__loan-summary" id="assetsSummary"></div>
+          </div>
+        </div>
+
+        <!-- 第 2 行：数据管理栏（v3.3 Phase 16，全宽 100%） -->
+        <div class="lc-grid lc-grid--single">
+          <div class="cf__databar">
+            <span class="cf__databar-label">数据管理</span>
+            <button class="cf__databar-btn" id="exportBtn">导出数据</button>
+            <button class="cf__databar-btn" id="importBtn">导入数据</button>
+            <button class="cf__databar-btn" id="loadSampleBtn" hidden>载入示例</button>
+            <button class="cf__databar-btn cf__databar-btn--accent" id="loadMultiLoanBtn" hidden>载入多贷款示例</button>
+            <button class="cf__databar-btn cf__databar-btn--danger" id="clearAllBtn">清空所有</button>
+            <span class="cf__databar-location">localStorage · huasuan_cashflow / huasuan_plans</span>
+            <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+          </div>
+          <!-- v3.16：本地数据文件（File System Access API，Chrome/Edge；不支持时 JS 保持 hidden） -->
+          <div class="cf__databar cf__databar--file" id="fileBar" hidden>
+            <span class="cf__databar-label">数据文件</span>
+            <span class="cf__file-status" id="fileStatus">未绑定 — 数据仅存于浏览器 localStorage</span>
+            <button class="cf__databar-btn cf__databar-btn--accent" id="bindFileBtn">绑定数据文件</button>
+            <button class="cf__databar-btn" id="openFileBtn" hidden>打开数据文件</button>
+            <button class="cf__databar-btn" id="reauthFileBtn" hidden>重新授权</button>
+            <button class="cf__databar-btn cf__databar-btn--danger" id="unbindFileBtn" hidden>解除绑定</button>
+          </div>
+        </div>
+
+        <!-- 第 3 行：收入构成饼图（左 50%） / 支出分布棒图（右 50%）（v3.7 section header 同未来计划） -->
+        <div class="lc-grid lc-grid--pair">
+          <div class="sub-block cf__chart-block">
+            <div class="sub-head">
+              <h3 class="sub-head__title">收入构成</h3>
+              <span class="sub-head__eyebrow">INCOME MIX</span>
+            </div>
+            <div class="cf__chart-wrap">
+              <canvas id="incomeChart"></canvas>
+            </div>
+          </div>
+          <div class="sub-block cf__chart-block">
+            <div class="sub-head">
+              <h3 class="sub-head__title">支出分布</h3>
+              <span class="sub-head__eyebrow">EXPENSE MIX</span>
+            </div>
+            <div class="cf__chart-wrap cf__chart-wrap--bar">
+              <canvas id="expenseChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div><!-- /.layout-center -->
+
+      <!-- ========== v3.6 底栏：未来计划（全宽） ========== -->
+      <div class="layout-bottom">
+        <div class="col-head">
+          <h2 class="col-head__title">未来计划</h2>
+          <span class="col-head__eyebrow">PLANS</span>
+        </div>
+
+        <!-- 统计面板（底栏全宽时 4 列等分） -->
+        <div class="plans__stats">
+          <div class="plans__stat">
+            <div class="plans__stat-label">总目标金额</div>
+            <div class="plans__stat-value" id="statTotalAmount">0</div>
+            <div class="plans__stat-sub">元（未完成）</div>
+          </div>
+          <div class="plans__stat">
+            <div class="plans__stat-label">进行中</div>
+            <div class="plans__stat-value plans__stat-value--secondary" id="statActive">0</div>
+            <div class="plans__stat-sub">个计划</div>
+          </div>
+          <div class="plans__stat">
+            <div class="plans__stat-label">已完成</div>
+            <div class="plans__stat-value plans__stat-value--muted" id="statCompleted">0</div>
+            <div class="plans__stat-sub">个计划</div>
+          </div>
+          <div class="plans__stat">
+            <div class="plans__stat-label">已暂停</div>
+            <div class="plans__stat-value plans__stat-value--muted" id="statPaused">0</div>
+            <div class="plans__stat-sub">个计划</div>
+          </div>
+        </div>
+
+        <!-- 预测设置（月结余直接来自上方现金流） -->
+        <div class="plans__forecast-settings">
+          <div class="plans__forecast-field">
+            <span class="plans__forecast-label">月结余</span>
+            <span class="plans__forecast-value" id="monthlyBalanceDisplay">—</span>
+            <span class="plans__forecast-hint" id="monthlyBalanceHint">来自上方现金流</span>
+          </div>
+          <div class="plans__forecast-field">
+            <span class="plans__forecast-label">年化收益率</span>
+            <select id="rateSelect" class="plans__forecast-select">
+              <option value="0">0% — 纯线性（默认）</option>
+              <option value="3">3% — 假设：稳健理财</option>
+              <option value="5">5% — 假设：进取理财</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- v3.12 利率参考：真实市场利率（assets/rates.js，定时任务更新） -->
+        <div class="rates" id="ratesCard">
+          <div class="rates__head">
+            <h3 class="rates__title">利率参考</h3>
+            <span class="rates__eyebrow">MARKET RATES</span>
+            <span class="rates__updated" id="ratesUpdated">数据截至 —</span>
+          </div>
+          <div class="rates__body">
+            <div class="rates__group">
+              <div class="rates__group-label">储蓄国债<em id="ratesBondNote"></em></div>
+              <div class="rates__rows" id="ratesBondRows"></div>
+            </div>
+            <div class="rates__group">
+              <div class="rates__group-label">定期存款 · 整存整取<em id="ratesDepositNote"></em></div>
+              <div class="rates__rows" id="ratesDepositRows"></div>
+            </div>
+          </div>
+          <div class="rates__source" id="ratesSource">—</div>
+        </div>
+
+        <!-- v3.10 退休测算：不工作支撑 30 年支出（动态模拟 + 通胀，贷款还完自动扣） -->
+        <div class="retire" id="retireCard">
+          <div class="retire__head">
+            <h3 class="retire__title">退休测算</h3>
+            <span class="retire__logic">每月结余按月复利滚存，直至资产可支撑退休后 30 年支出（支出随通胀递增 · 贷款还完自动扣）</span>
+            <span class="retire__eyebrow">RETIREMENT · 30Y</span>
+          </div>
+          <div class="retire__body">
+            <div class="retire__main">
+              <div class="retire__date" id="retireDate">—</div>
+              <div class="retire__sub" id="retireSub">最早可退休年月</div>
+            </div>
+            <div class="retire__facts">
+              <div class="retire__fact"><span class="retire__fact-k">届时预计资产</span><span class="retire__fact-v" id="retireAssetsAt">—</span></div>
+              <div class="retire__fact"><span class="retire__fact-k">届时所需资产</span><span class="retire__fact-v retire__fact-v--gold" id="retireNeededAt">—</span></div>
+              <div class="retire__fact"><span class="retire__fact-k">立即退休所需</span><span class="retire__fact-v" id="retireNeededNow">—</span></div>
+            </div>
+          </div>
+          <div class="retire__progress">
+            <div class="retire__progress-bar"><div class="retire__progress-fill" id="retireProgressFill"></div></div>
+            <div class="retire__progress-text" id="retireProgressText">—</div>
+          </div>
+          <div class="retire__inputs">
+            <label class="retire__input"><span>月被动收入</span><input type="number" id="retirePassive" min="0" step="100" value="0"><em>元/月</em></label>
+            <label class="retire__input"><span>通胀率</span><input type="number" id="retireInflation" min="0" max="10" step="0.1" value="2.5"><em>%/年</em></label>
+          </div>
+          <div class="retire__note" id="retireNote">—</div>
+        </div>
+
+        <!-- 工具栏 -->
+        <div class="plans__toolbar">
+          <div class="plans__sort-tabs">
+            <button class="plans__sort-tab active" data-sort="priority">按优先级</button>
+            <button class="plans__sort-tab" data-sort="deadline">按截止日期</button>
+            <button class="plans__sort-tab" data-sort="createdAt">按创建时间</button>
+          </div>
+          <button class="btn btn--primary" id="addPlanBtn">+ 新建计划</button>
+        </div>
+
+        <!-- 计划列表 -->
+        <div class="plans__list" id="plansList"></div>
+
+        <!-- 空状态 -->
+        <div class="plans__empty" id="plansEmpty" style="display:none;">
+          <div class="plans__empty-title">还没有任何计划</div>
+          <div class="plans__empty-desc">点击"新建计划"添加你的第一笔未来支出目标</div>
+          <button class="btn btn--ghost" onclick="document.getElementById('addPlanBtn').click()">+ 新建计划</button>
+        </div>
+      </div><!-- /.layout-bottom -->
+    </div>
+  </section>
+
+  <!-- 模态框：新建/编辑计划 -->
+  <div class="plans__modal-overlay" id="planModal">
+    <div class="plans__modal">
+      <button class="plans__modal-close" id="modalCloseBtn">×</button>
+      <h2 class="plans__modal-title" id="modalTitle">新建计划</h2>
+
+      <div class="plans__form-group">
+        <label class="plans__form-label">计划名称 *</label>
+        <input type="text" class="plans__form-input" id="formName" placeholder="如：3年后买车" maxlength="40">
+      </div>
+
+      <div class="plans__form-group">
+        <label class="plans__form-label">目标金额（元） *</label>
+        <input type="number" class="plans__form-input" id="formAmount" placeholder="如：120000" min="0" step="1000">
+      </div>
+
+      <div class="plans__form-group">
+        <label class="plans__form-label">优先级</label>
+        <div class="plans__priority-options">
+          <button type="button" class="plans__priority-option" data-priority="1">高</button>
+          <button type="button" class="plans__priority-option" data-priority="2">中</button>
+          <button type="button" class="plans__priority-option" data-priority="3">低</button>
+        </div>
+      </div>
+
+      <div class="plans__form-group">
+        <label class="plans__form-label">截止日期</label>
+        <input type="month" class="plans__form-input" id="formDeadline">
+      </div>
+
+      <div class="plans__form-group">
+        <label class="plans__form-label">状态</label>
+        <select class="plans__form-select" id="formStatus">
+          <option value="active">进行中</option>
+          <option value="paused">已暂停</option>
+          <option value="completed">已完成</option>
+        </select>
+      </div>
+
+      <div class="plans__form-group">
+        <label class="plans__form-label">备注（可选）</label>
+        <textarea class="plans__form-textarea" id="formNote" placeholder="如：紧凑型轿车，含购置税" maxlength="200"></textarea>
+      </div>
+
+      <div class="plans__modal-actions">
+        <button class="btn btn--ghost" id="modalCancelBtn">取消</button>
+        <button class="btn btn--primary" id="modalSaveBtn">保存</button>
+      </div>
+    </div>
   </div>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">划算</div>
+      <div class="footer__copy">© 2026 划算 · 财产健康，看得见</div>
+    </div>
+  </footer>
+
+  <script src="assets/rates.js"></script>
   <script>
-    // 兜底：meta refresh 失败时用 JS 跳转
-    location.replace('cashflow.html');
+    // ========== CashflowApp（v3.3 + v3.4 合并版） ==========
+    // 数据结构：
+    // Expense = { id, name, category('fixed'|'variable'), amount,
+    //             loanType?('equal-installment'|'equal-principal'|'simple'),
+    //             annualRate?, totalMonths?, totalAmount? }
+    // 变动支出填入利率/期数/总额后自动计算月供并锁定金额框
+
+    function CashflowApp() {
+      this.STORAGE_KEY = 'huasuan_cashflow';
+      this.state = this.loadState();
+      this.countUpInstance = null;
+      this.incomeChart = null;
+      this.expenseChart = null;
+      this.calcTimer = null;
+      this.init();
+    }
+
+    // 返回今天的 YYYY-MM 字符串（快照基准月）
+    CashflowApp.prototype.todayMonthStr = function() {
+      var d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    };
+
+    CashflowApp.prototype.getDefaultState = function() {
+      var base = this.todayMonthStr();
+      var expenses = [
+        { id: this.genId(), name: '订阅服务', amount: 300, category: 'fixed' },
+        { id: this.genId(), name: '房贷', amount: 4272, category: 'variable', isLoan: true, loanType: 'equal-installment', annualRate: 3.1, totalMonths: 360, totalAmount: 1000000, currentPeriod: 36 },
+        { id: this.genId(), name: '餐饮', amount: 2500, category: 'variable' },
+        { id: this.genId(), name: '交通', amount: 800, category: 'variable' },
+        { id: this.genId(), name: '购物', amount: 1500, category: 'variable' },
+        { id: this.genId(), name: '娱乐', amount: 1000, category: 'variable' }
+      ];
+      return {
+        snapshotName: '当前月',
+        baseMonth: base,        // 快照基准月（YYYY-MM）
+        currentMonthOffset: 0,  // 相对基准月偏移（可正可负）
+        // 每笔贷款在基准月的 currentPeriod，用于月份±时重定位
+        baseLoanPeriods: expenses.reduce(function(acc, e) {
+          if (e.isLoan) acc[e.id] = e.currentPeriod;
+          return acc;
+        }, {}),
+        incomes: [
+          { id: this.genId(), name: '工资', amount: 15000 },
+          { id: this.genId(), name: '副业', amount: 2000 }
+        ],
+        expenses: expenses,
+        updatedAt: null
+      };
+    };
+
+    CashflowApp.prototype.getEmptyState = function() {
+      return {
+        snapshotName: '当前月',
+        baseMonth: this.todayMonthStr(),
+        currentMonthOffset: 0,
+        baseLoanPeriods: {},
+        incomes: [{ id: this.genId(), name: '', amount: 0 }],
+        expenses: [{ id: this.genId(), name: '', amount: 0, category: 'variable' }],
+        updatedAt: null
+      };
+    };
+
+    // v3.5：5 笔贷款 Mock 数据（压力测试汇总卡 & 总资产：覆盖3种还款方式 × 各阶段 × 多期限）
+    CashflowApp.prototype.get5LoanState = function() {
+      var gid = this.genId.bind(this);
+      var loanA = { id: gid(), name: '房贷', amount: 4270, category: 'variable', isLoan: true, loanType: 'equal-installment', annualRate: 3.1, totalMonths: 360, totalAmount: 1000000, currentPeriod: 36, repayDay: 20 };
+      var loanB = { id: gid(), name: '车贷1', amount: 2983, category: 'variable', isLoan: true, loanType: 'equal-installment', annualRate: 4.5, totalMonths: 60, totalAmount: 160000, currentPeriod: 12, repayDay: 5 };
+      var loanC = { id: gid(), name: '消费贷', amount: 1035, category: 'variable', isLoan: true, loanType: 'equal-principal', annualRate: 4.2, totalMonths: 12, totalAmount: 12000, currentPeriod: 3, repayDay: 15 };
+      var loanD = { id: gid(), name: '教育分期', amount: 833, category: 'variable', isLoan: true, loanType: 'simple', annualRate: 0, totalMonths: 24, totalAmount: 20000, currentPeriod: 8, repayDay: 10 };
+      var loanE = { id: gid(), name: '车贷2', amount: 3345, category: 'variable', isLoan: true, loanType: 'equal-installment', annualRate: 5.8, totalMonths: 36, totalAmount: 110000, currentPeriod: 1, repayDay: 25 };
+      var expenses = [
+        { id: gid(), name: '订阅服务', amount: 300, category: 'fixed' },
+        loanA, loanB, loanC, loanD, loanE,
+        { id: gid(), name: '餐饮', amount: 2500, category: 'variable' },
+        { id: gid(), name: '交通', amount: 800, category: 'variable' },
+        { id: gid(), name: '购物', amount: 1500, category: 'variable' }
+      ];
+      var base = this.todayMonthStr();
+      return {
+        snapshotName: '多贷款压力测',
+        baseMonth: base,
+        currentMonthOffset: 0,
+        baseLoanPeriods: (function(list){ var m={}; list.forEach(function(e){if(e.isLoan) m[e.id]=e.currentPeriod;}); return m; })(expenses),
+        incomes: [
+          { id: gid(), name: '工资', amount: 25000 },
+          { id: gid(), name: '副业', amount: 3000 },
+          { id: gid(), name: '租金收入', amount: 4500 }
+        ],
+        expenses: expenses,
+        updatedAt: null
+      };
+    };
+
+    CashflowApp.prototype.genId = function() {
+      return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+    };
+
+    CashflowApp.prototype.loadState = function() {
+      try {
+        var raw = localStorage.getItem(this.STORAGE_KEY);
+        if (!raw) return this.getDefaultState();
+        var parsed = JSON.parse(raw);
+        if (!parsed.incomes || !parsed.expenses) return this.getDefaultState();
+        // v3.4.1 迁移：旧数据无 isLoan 字段 → 有完整贷款参数的自动开启开关
+        parsed.expenses.forEach(function(e) {
+          if (e.category !== 'fixed' && e.isLoan == null) {
+            e.isLoan = (parseFloat(e.totalAmount) > 0 && parseInt(e.totalMonths, 10) > 0);
+          }
+        });
+        // v3.5 迁移：快照月份状态 & 贷款基准期
+        if (!parsed.baseMonth) parsed.baseMonth = (function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');})();
+        if (typeof parsed.currentMonthOffset !== 'number') parsed.currentMonthOffset = 0;
+        if (!parsed.baseLoanPeriods) {
+          parsed.baseLoanPeriods = {};
+          parsed.expenses.forEach(function(e) { if (e.isLoan) parsed.baseLoanPeriods[e.id] = e.currentPeriod; });
+        }
+        return parsed;
+      } catch (e) {
+        console.warn('[Cashflow] 数据解析失败，使用默认值', e);
+        return this.getDefaultState();
+      }
+    };
+
+    CashflowApp.prototype.saveState = function() {
+      this.state.updatedAt = new Date().toISOString();
+      try {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+      } catch (e) {
+        console.error('[Cashflow] 保存失败', e);
+        alert('存储空间已满，请清理浏览器数据后重试');
+      }
+      this.updateSnapshotDate();
+    };
+
+    CashflowApp.prototype.updateSnapshotDate = function() {
+      var dateEl = document.getElementById('snapshotDate');
+      if (!dateEl) return;
+      if (this.state.updatedAt) {
+        var d = new Date(this.state.updatedAt);
+        var yyyy = d.getFullYear();
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var dd = String(d.getDate()).padStart(2, '0');
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mi = String(d.getMinutes()).padStart(2, '0');
+        dateEl.textContent = yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + mi;
+      } else {
+        dateEl.textContent = '未保存';
+      }
+    };
+
+    // 返回当前快照月（YYYY-MM）= baseMonth + currentMonthOffset
+    CashflowApp.prototype.getSnapshotMonth = function() {
+      var parts = (this.state.baseMonth || '2026-08').split('-');
+      var y = parseInt(parts[0], 10) || 2026;
+      var m = parseInt(parts[1], 10) || 8;
+      var offset = this.state.currentMonthOffset || 0;
+      var totalM = y * 12 + (m - 1) + offset;
+      var ny = Math.floor(totalM / 12);
+      var nm = (totalM % 12) + 1;
+      return ny + '-' + String(nm).padStart(2, '0');
+    };
+
+    // v3.5：统一月份推进入口（Experience 93357 避坑：单函数、固定顺序）
+    CashflowApp.prototype.advanceMonths = function(delta) {
+      if (!delta) return;
+      this.state.currentMonthOffset = (this.state.currentMonthOffset || 0) + delta;
+      // 重定位每笔贷款 currentPeriod（相对基准月偏移）
+      var self = this;
+      this.state.expenses.forEach(function(e) {
+        if (!e.isLoan) return;
+        var base = self.state.baseLoanPeriods && self.state.baseLoanPeriods[e.id] != null ? self.state.baseLoanPeriods[e.id] : (e.currentPeriod || 1);
+        var tm = parseInt(e.totalMonths, 10) || 1;
+        var next = base + self.state.currentMonthOffset;
+        if (next < 1) next = 1;
+        if (next > tm) next = tm;
+        e.currentPeriod = next;
+      });
+      this.renderSnapshotBar();
+      this.renderExpenseList();
+      this.calculate();
+      this.saveState();
+    };
+
+    // 同步 snapshot bar 的月份输入框显示
+    CashflowApp.prototype.renderSnapshotBar = function() {
+      var el = document.getElementById('monthInput');
+      if (el) el.value = this.getSnapshotMonth();
+    };
+
+    // 当用户手动改了贷款 currentPeriod 输入框 → 更新 baseLoanPeriods（以当前快照月为新基准）
+    CashflowApp.prototype.resetBaseLoanPeriods = function() {
+      var self = this;
+      self.state.baseLoanPeriods = {};
+      self.state.expenses.forEach(function(e) {
+        if (e.isLoan) self.state.baseLoanPeriods[e.id] = e.currentPeriod || 1;
+      });
+      self.state.currentMonthOffset = 0;
+      self.renderSnapshotBar();
+    };
+
+    CashflowApp.prototype.init = function() {
+      // v3.6：移除 snapshotName 输入，不再渲染
+      this.renderSnapshotBar();
+      this.renderIncomeList();
+      this.renderExpenseList();
+      this.bindEvents();
+      this.initCharts();
+      this.calculate();
+      this.updateSnapshotDate();
+    };
+
+    CashflowApp.prototype.bindEvents = function() {
+      var self = this;
+
+      // v3.5 快照月份导航
+      document.getElementById('monthPrev').addEventListener('click', function() { self.advanceMonths(-1); });
+      document.getElementById('monthNext').addEventListener('click', function() { self.advanceMonths(1); });
+      document.getElementById('monthInput').addEventListener('change', function(e) {
+        if (!e.target.value) return;
+        var parts = e.target.value.split('-');
+        var ny = parseInt(parts[0], 10);
+        var nm = parseInt(parts[1], 10);
+        if (isNaN(ny) || isNaN(nm)) return;
+        // 计算目标月相对 baseMonth 的 delta，用 advanceMonths 推进到目标（统一入口）
+        var bp = (self.state.baseMonth || '').split('-');
+        var by = parseInt(bp[0], 10) || ny;
+        var bm = parseInt(bp[1], 10) || nm;
+        var delta = (ny * 12 + nm) - (by * 12 + bm);
+        // 先重置 offset 回到 0，再加 delta（避免叠加错位）
+        self.advanceMonths(-(self.state.currentMonthOffset || 0));
+        if (delta) self.advanceMonths(delta);
+      });
+
+      document.getElementById('addIncomeBtn').addEventListener('click', function() {
+        self.state.incomes.push({ id: self.genId(), name: '', amount: 0 });
+        self.renderIncomeList();
+        self.calculate();
+        self.saveState();
+      });
+
+      document.getElementById('addExpenseBtn').addEventListener('click', function() {
+        self.state.expenses.push({ id: self.genId(), name: '', amount: 0, category: 'variable' });
+        self.renderExpenseList();
+        self.calculate();
+        self.saveState();
+      });
+
+      document.getElementById('loadSampleBtn').addEventListener('click', function() {
+        if (!confirm('确定载入示例数据？将覆盖当前现金流和未来计划。')) return;
+        var sample = self.getDefaultState();
+        self.state.incomes = sample.incomes;
+        self.state.expenses = sample.expenses;
+        self.renderSnapshotBar();
+        self.renderIncomeList();
+        self.renderExpenseList();
+        self.calculate();
+        self.saveState();
+        if (window.plansApp) window.plansApp.loadSample();
+      });
+
+      document.getElementById('loadMultiLoanBtn').addEventListener('click', function() {
+        if (!confirm('确定载入 5 笔贷款压力测示例？将覆盖当前现金流数据。')) return;
+        var sample = self.get5LoanState();
+        self.state = sample;
+        self.renderSnapshotBar();
+        self.renderIncomeList();
+        self.renderExpenseList();
+        self.calculate();
+        self.saveState();
+      });
+
+      document.getElementById('clearAllBtn').addEventListener('click', function() {
+        if (!confirm('确定清空所有收支项和未来计划？此操作不可恢复。')) return;
+        var empty = self.getEmptyState();
+        self.state.incomes = empty.incomes;
+        self.state.expenses = empty.expenses;
+        self.renderSnapshotBar();
+        self.renderIncomeList();
+        self.renderExpenseList();
+        self.calculate();
+        self.saveState();
+        if (window.plansApp) window.plansApp.clearAll();
+      });
+
+      // 导出（v3.3 Phase 16：现金流 + 未来计划一起导出）
+      document.getElementById('exportBtn').addEventListener('click', function() {
+        self.exportData();
+      });
+
+      // 导入
+      document.getElementById('importBtn').addEventListener('click', function() {
+        document.getElementById('importFile').click();
+      });
+      document.getElementById('importFile').addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        self.importData(file);
+        e.target.value = '';
+      });
+    };
+
+    // ========== 导出 / 导入 ==========
+    CashflowApp.prototype.exportData = function() {
+      var payload = {
+        app: 'huasuan',
+        version: '3.4',
+        exportedAt: new Date().toISOString(),
+        cashflow: this.state,
+        plans: window.plansApp ? window.plansApp.state : null
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      var d = new Date();
+      var stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+      a.href = url;
+      a.download = 'huasuan-backup-' + stamp + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    CashflowApp.prototype.importData = function(file) {
+      var self = this;
+      var reader = new FileReader();
+      reader.onload = function() {
+        try {
+          var data = JSON.parse(reader.result);
+          if (!data || !data.cashflow || !Array.isArray(data.cashflow.incomes) || !Array.isArray(data.cashflow.expenses)) {
+            alert('导入失败：文件格式不正确（缺少 cashflow 数据）');
+            return;
+          }
+          if (!data.plans || !Array.isArray(data.plans.plans)) {
+            alert('导入失败：文件格式不正确（缺少 plans 数据）');
+            return;
+          }
+          if (!confirm('导入将覆盖当前现金流和未来计划数据，继续？')) return;
+
+          self.state = data.cashflow;
+          // v3.4.1 迁移：导入旧格式（无 isLoan）时按贷款参数自动开启开关
+          self.state.expenses.forEach(function(e) {
+            if (e.category !== 'fixed' && e.isLoan == null) {
+              e.isLoan = (parseFloat(e.totalAmount) > 0 && parseInt(e.totalMonths, 10) > 0);
+            }
+          });
+          self.saveState();
+          self.renderSnapshotBar();
+          self.renderIncomeList();
+          self.renderExpenseList();
+          self.calculate();
+
+          if (window.plansApp) {
+            window.plansApp.state = { plans: data.plans.plans, sortBy: data.plans.sortBy || 'priority' };
+            window.plansApp.saveState();
+            window.plansApp.updateSortTabs();
+            window.plansApp.render();
+          }
+          alert('导入成功');
+        } catch (err) {
+          console.error('[Import] 解析失败', err);
+          alert('导入失败：JSON 解析错误');
+        }
+      };
+      reader.readAsText(file, 'UTF-8');
+    };
+
+    // ========== 贷款计算（v3.3 Phase 15） ==========
+    // P=总额 r=月利率(年利率÷12) n=期数
+    // 等额本息：月供 = P·r·(1+r)^n / ((1+r)^n − 1)，r=0 时 = P/n
+    // 等额本金：月供本金 = P/n，第 i 月利息 = 剩余本金×r
+    // 普通：月供 = P/n，无利息
+    CashflowApp.prototype.calcLoan = function(item) {
+      var P = parseFloat(item.totalAmount) || 0;
+      var n = parseInt(item.totalMonths, 10) || 0;
+      var type = item.loanType || 'equal-installment';
+      if (P <= 0 || n <= 0 || n > 1200) return null;
+
+      var annualRate = type === 'simple' ? 0 : (parseFloat(item.annualRate) || 0);
+      var r = annualRate / 100 / 12;
+      var schedule = [];
+      var remain = P;
+      var totalInterest = 0;
+
+      if (type === 'equal-installment') {
+        var pay = r > 0 ? P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1) : P / n;
+        for (var i = 0; i < n; i++) {
+          var interest = remain * r;
+          var principal = pay - interest;
+          if (i === n - 1) principal = remain; // 末期抹平尾差
+          remain -= principal;
+          if (remain < 0.005) remain = 0;
+          totalInterest += interest;
+          schedule.push({ period: i + 1, pay: principal + interest, principal: principal, interest: interest, remain: remain });
+        }
+      } else if (type === 'equal-principal') {
+        var base = P / n;
+        for (var j = 0; j < n; j++) {
+          var int2 = remain * r;
+          remain -= base;
+          if (remain < 0.005) remain = 0;
+          totalInterest += int2;
+          schedule.push({ period: j + 1, pay: base + int2, principal: base, interest: int2, remain: remain });
+        }
+      } else { // simple
+        var base2 = P / n;
+        for (var k = 0; k < n; k++) {
+          remain -= base2;
+          if (remain < 0.005) remain = 0;
+          schedule.push({ period: k + 1, pay: base2, principal: base2, interest: 0, remain: remain });
+        }
+      }
+
+      return {
+        firstPay: schedule[0].pay,
+        firstInterest: schedule[0].interest,
+        totalInterest: totalInterest,
+        totalPay: P + totalInterest,
+        schedule: schedule
+      };
+    };
+
+    // 当前期的钳制取值：正在还第 cur 期（前 cur-1 期已还完）
+    CashflowApp.prototype.getCurrentPeriod = function(item, loan) {
+      var n = loan.schedule.length;
+      var cur = parseInt(item.currentPeriod, 10);
+      if (!cur || cur < 1) cur = 1;
+      if (cur > n) cur = n;
+      return cur;
+    };
+
+    // 贷款汇总（v3.4.3）：所有贷款的本月/剩余/全期 合计，无贷款自动隐藏
+    CashflowApp.prototype.updateLoanSummary = function() {
+      var box = document.getElementById('loanSummary');
+      if (!box) return;
+      var self = this;
+      var loans = [];
+      this.state.expenses.forEach(function(item) {
+        if (item.category === 'fixed' || !item.isLoan) return;
+        var loan = self.calcLoan(item);
+        if (!loan) return;
+        var cur = self.getCurrentPeriod(item, loan);
+        var totalAmount = parseFloat(item.totalAmount) || 0;
+        var remainPrincipal = cur === 1 ? totalAmount : loan.schedule[cur - 2].remain;
+        var paidInterest = 0;
+        for (var i = 0; i < cur - 1; i++) paidInterest += loan.schedule[i].interest;
+        var remainInterest = loan.totalInterest - paidInterest;
+        loans.push({
+          monthPay: loan.schedule[cur - 1].pay,
+          monthInterest: loan.schedule[cur - 1].interest,
+          remainPay: remainPrincipal + remainInterest,
+          remainInterest: remainInterest,
+          totalPay: loan.totalPay,
+          totalInterest: loan.totalInterest
+        });
+      });
+
+      if (!loans.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+      var s = function(key) { return loans.reduce(function(acc, l) { return acc + l[key]; }, 0); };
+      var fmt = function(v) { return '¥' + self.formatNum(v); };
+      // v3.7：通用 stat 卡构造器（与未来计划 plans__stat 视觉规格完全一致）
+      var stat = function(labelEn, labelCn, value, cls, sub) {
+        return '<div class="sub-stat">' +
+          '<div class="sub-stat-label">' + labelEn + ' · ' + labelCn + '</div>' +
+          '<div class="sub-stat-value' + (cls ? ' sub-stat-value--' + cls : '') + '">' + value + '</div>' +
+          (sub ? '<div class="sub-stat-sub">' + sub + '</div>' : '') +
+        '</div>';
+      };
+      box.innerHTML =
+        '<div class="sub-block">' +
+          '<div class="sub-head">' +
+            '<h3 class="sub-head__title">贷款汇总 · ' + loans.length + ' 笔</h3>' +
+            '<span class="sub-head__eyebrow">LOANS OVERVIEW</span>' +
+          '</div>' +
+          '<div class="sub-stats">' +
+            stat('MONTHLY PAYMENT', '本月还款', fmt(s('monthPay')), '', '本月应还本息合计') +
+            stat('MONTHLY INTEREST', '本月利息', fmt(s('monthInterest')), 'gold', '本期利率成本') +
+            stat('REMAINING BALANCE', '剩余待还', fmt(s('remainPay')), '', '剩余本金 + 未来利息') +
+            stat('REMAINING INTEREST', '剩余利息', fmt(s('remainInterest')), 'gold', '未来全部利息支出') +
+            stat('LIFETIME PAYMENT', '全期还款总额', fmt(s('totalPay')), '', '本金利息合计') +
+            stat('LIFETIME INTEREST', '全期总利息', fmt(s('totalInterest')), 'gold', '贷款生命周期利息总和') +
+          '</div>' +
+        '</div>';
+      box.style.display = '';
+    };
+
+    // 更新单个变动支出的贷款结果区（不重渲染列表，避免输入焦点丢失）
+    CashflowApp.prototype.updateLoanResult = function(cardEl, item) {
+      var loan = this.calcLoan(item);
+      var payEl = cardEl.querySelector('[data-slot="pay"]');
+      var intEl = cardEl.querySelector('[data-slot="interest"]');
+      var paidEl = cardEl.querySelector('[data-slot="paidInterest"]');
+      var remainEl = cardEl.querySelector('[data-slot="remainInterest"]');
+      var progressEl = cardEl.querySelector('[data-slot="progress"]');
+      var amountInput = cardEl.querySelector('.cf__field-amount');
+
+      if (!loan) {
+        if (payEl) { payEl.textContent = '—'; payEl.classList.add('cf__loan-result-value--muted'); }
+        if (intEl) { intEl.textContent = '—'; intEl.classList.add('cf__loan-result-value--muted'); intEl.classList.remove('cf__loan-result-value--gold'); }
+        if (paidEl) { paidEl.textContent = '—'; paidEl.classList.add('cf__loan-result-value--muted'); }
+        if (remainEl) { remainEl.textContent = '—'; remainEl.classList.add('cf__loan-result-value--muted'); }
+        if (progressEl) { progressEl.textContent = '—'; progressEl.classList.add('cf__loan-progress--muted'); }
+        if (amountInput) amountInput.readOnly = false;
+        return;
+      }
+
+      var n = loan.schedule.length;
+      var cur = this.getCurrentPeriod(item, loan);
+      var curRow = loan.schedule[cur - 1];        // 当前期还款行
+      // 进入本期时的剩余本金（= 前 cur-1 期还完后的剩余）
+      var remainPrincipal = cur === 1 ? (parseFloat(item.totalAmount) || 0) : loan.schedule[cur - 2].remain;
+      var paidPrincipal = (parseFloat(item.totalAmount) || 0) - remainPrincipal;
+      // 已还利息 = 前 cur-1 期利息之和；剩余利息 = 总利息 − 已还利息
+      var paidInterest = 0;
+      for (var i = 0; i < cur - 1; i++) paidInterest += loan.schedule[i].interest;
+      var remainInterest = loan.totalInterest - paidInterest;
+
+      if (payEl) { payEl.textContent = '¥' + this.formatNum(curRow.pay); payEl.classList.remove('cf__loan-result-value--muted'); }
+      if (intEl) { intEl.textContent = '¥' + this.formatNum(curRow.interest); intEl.classList.remove('cf__loan-result-value--muted'); intEl.classList.add('cf__loan-result-value--gold'); }
+      if (paidEl) { paidEl.textContent = '¥' + this.formatNum(paidInterest); paidEl.classList.remove('cf__loan-result-value--muted'); }
+      if (remainEl) { remainEl.textContent = '¥' + this.formatNum(remainInterest); remainEl.classList.remove('cf__loan-result-value--muted'); }
+      if (progressEl) {
+        // v3.15：还款日仅记录展示（每月X日还款 ·）
+        var dayPrefix = (item.repayDay >= 1 && item.repayDay <= 31) ? '每月' + item.repayDay + '日还款 · ' : '';
+        progressEl.textContent = dayPrefix + '第 ' + cur + '/' + n + ' 期 · 已还本金 ¥' + this.formatNum(paidPrincipal) + ' · 剩余本金 ¥' + this.formatNum(remainPrincipal);
+        progressEl.classList.remove('cf__loan-progress--muted');
+      }
+
+      // 有效贷款 → 金额 = 本期月供，锁定为只读
+      if (amountInput) {
+        item.amount = Math.round(curRow.pay * 100) / 100;
+        amountInput.value = item.amount ? item.amount : '';
+        amountInput.readOnly = true;
+      }
+    };
+
+    // 生成明细面板 HTML（≤24 期全显示；>24 期显示前 3 + 省略 + 末 2；当前期高亮）
+    CashflowApp.prototype.buildDetailPanel = function(item) {
+      var loan = this.calcLoan(item);
+      if (!loan) return '';
+      var rows = '';
+      var s = loan.schedule;
+      var cur = this.getCurrentPeriod(item, loan);
+      var fmt = function(v) { return '¥' + Math.round(v).toLocaleString('zh-CN'); };
+      var rowHtml = function(r) {
+        var hl = r.period === cur ? ' class="cf__detail-row--current"' : '';
+        return '<tr' + hl + '><td>' + r.period + '</td><td>' + fmt(r.pay) + '</td><td>' + fmt(r.principal) + '</td><td>' + fmt(r.interest) + '</td><td>' + fmt(r.remain) + '</td></tr>';
+      };
+      if (s.length <= 24) {
+        s.forEach(function(r) { rows += rowHtml(r); });
+      } else {
+        rows += rowHtml(s[0]) + rowHtml(s[1]) + rowHtml(s[2]);
+        // 当前期不在前 3 / 末 2 时，单独插入显示
+        if (cur > 3 && cur < s.length - 1) {
+          rows += '<tr><td colspan="5" class="cf__detail-ellipsis">···</td></tr>';
+          rows += rowHtml(s[cur - 1]);
+        }
+        rows += '<tr><td colspan="5" class="cf__detail-ellipsis">···</td></tr>';
+        rows += rowHtml(s[s.length - 2]) + rowHtml(s[s.length - 1]);
+      }
+      var summary = '<div class="cf__detail-ellipsis">共 ' + s.length + ' 期 · 当期第 ' + cur + ' 期 · 还款总额 ' + fmt(loan.totalPay) + ' · 利息总额 ' + fmt(loan.totalInterest) + '</div>';
+      return '<table class="cf__detail-table"><thead><tr><th>期数</th><th>月供</th><th>本金</th><th>利息</th><th>剩余本金</th></tr></thead><tbody>' + rows + '</tbody></table>' + summary;
+    };
+
+    // ========== 收入列表 ==========
+    CashflowApp.prototype.renderIncomeList = function() {
+      var listEl = document.getElementById('incomeList');
+      var self = this;
+      listEl.innerHTML = '';
+
+      this.state.incomes.forEach(function(item, idx) {
+        var card = document.createElement('div');
+        card.className = 'cf__income-card';
+        card.innerHTML =
+          '<button class="cf__delete" data-idx="' + idx + '" title="删除">✕</button>' +
+          '<input type="text" class="cf__field cf__field-name" placeholder="收入名称（如：工资）" value="' + self.escape(item.name) + '" data-idx="' + idx + '" data-field="name">' +
+          '<input type="number" class="cf__field cf__field-amount" placeholder="0" value="' + (item.amount || '') + '" data-idx="' + idx + '" data-field="amount" min="0" step="100" title="月金额">';
+        listEl.appendChild(card);
+      });
+
+      listEl.querySelectorAll('.cf__field-name, .cf__field-amount').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          var field = e.target.dataset.field;
+          if (field === 'amount') {
+            self.state.incomes[i].amount = parseFloat(e.target.value) || 0;
+          } else {
+            self.state.incomes[i].name = e.target.value;
+          }
+          self.debouncedCalc();
+        });
+        input.addEventListener('blur', function() { self.saveState(); });
+      });
+      listEl.querySelectorAll('.cf__delete').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          self.state.incomes.splice(i, 1);
+          if (self.state.incomes.length === 0) {
+            self.state.incomes.push({ id: self.genId(), name: '', amount: 0 });
+          }
+          self.renderIncomeList();
+          self.calculate();
+          self.saveState();
+        });
+      });
+    };
+
+    // ========== 支出列表 ==========
+    CashflowApp.prototype.renderExpenseList = function() {
+      var listEl = document.getElementById('expenseList');
+      var self = this;
+      listEl.innerHTML = '';
+
+      this.state.expenses.forEach(function(item, idx) {
+        var card = document.createElement('div');
+        card.className = 'cf__expense-card';
+        card.dataset.idx = idx;
+
+        var isVariable = item.category !== 'fixed';
+        var isLoan = isVariable && item.isLoan === true;
+        var html =
+          '<div class="cf__expense-main">' +
+            '<button class="cf__delete" data-idx="' + idx + '" title="删除">✕</button>' +
+            '<input type="text" class="cf__field cf__field-name" placeholder="支出名称（如：房租）" value="' + self.escape(item.name) + '" data-idx="' + idx + '" data-field="name">' +
+            '<select class="cf__select" data-idx="' + idx + '" data-field="category">' +
+              '<option value="fixed"' + (!isVariable ? ' selected' : '') + '>固定</option>' +
+              '<option value="variable"' + (isVariable ? ' selected' : '') + '>变动</option>' +
+            '</select>' +
+            (isVariable ?
+              '<label class="cf__loan-toggle' + (isLoan ? ' cf__loan-toggle--on' : '') + '" title="开启后填入利率/期数/总额，自动计算月供"><input type="checkbox" data-idx="' + idx + '" data-field="isLoan"' + (isLoan ? ' checked' : '') + '><span>贷款</span></label>' :
+              '') +
+            '<input type="number" class="cf__field cf__field-amount" placeholder="0" value="' + (item.amount || '') + '" data-idx="' + idx + '" data-field="amount" min="0" step="100" title="月金额（开启贷款并填入参数后自动计算）">' +
+          '</div>';
+
+        if (isLoan) {
+          var loanType = item.loanType || 'equal-installment';
+          html +=
+            '<div class="cf__loan">' +
+              '<div class="cf__loan-row">' +
+                '<select class="cf__select cf__select--loan" data-idx="' + idx + '" data-field="loanType">' +
+                  '<option value="equal-installment"' + (loanType === 'equal-installment' ? ' selected' : '') + '>等额本息</option>' +
+                  '<option value="equal-principal"' + (loanType === 'equal-principal' ? ' selected' : '') + '>等额本金</option>' +
+                  '<option value="simple"' + (loanType === 'simple' ? ' selected' : '') + '>普通</option>' +
+                '</select>' +
+                '<span class="cf__loan-label">年利率</span>' +
+                '<input type="number" class="cf__field cf__field--rate" placeholder="0" value="' + (item.annualRate != null ? item.annualRate : '') + '" data-idx="' + idx + '" data-field="annualRate" min="0" max="100" step="0.1"' + (loanType === 'simple' ? ' disabled' : '') + '>' +
+                '<span class="cf__loan-label">%</span>' +
+                '<span class="cf__loan-label">期限</span>' +
+                '<input type="number" class="cf__field cf__field--months" placeholder="如 12" value="' + (item.totalMonths != null ? item.totalMonths : '') + '" data-idx="' + idx + '" data-field="totalMonths" min="1" max="1200" step="1">' +
+                '<span class="cf__loan-label">月</span>' +
+                '<span class="cf__loan-label">当前期</span>' +
+                '<input type="number" class="cf__field cf__field--period" placeholder="1" value="' + (item.currentPeriod != null ? item.currentPeriod : 1) + '" data-idx="' + idx + '" data-field="currentPeriod" min="1" max="' + (item.totalMonths || 1200) + '" step="1" title="正在还第几期，如 3/12 填 3">' +
+                '<span class="cf__loan-label">总额</span>' +
+                '<input type="number" class="cf__field cf__field--total" placeholder="0" value="' + (item.totalAmount != null ? item.totalAmount : '') + '" data-idx="' + idx + '" data-field="totalAmount" min="0" step="1000">' +
+                '<span class="cf__loan-label">还款日</span>' +
+                '<input type="number" class="cf__field cf__field--day" placeholder="—" value="' + (item.repayDay != null ? item.repayDay : '') + '" data-idx="' + idx + '" data-field="repayDay" min="1" max="31" step="1" title="每月几号还款（仅记录，不影响计算）">' +
+                '<span class="cf__loan-label">日</span>' +
+                '<span class="cf__loan-label">还款金额</span>' +
+                '<span class="cf__loan-result-value cf__loan-result-value--muted" data-slot="pay">—</span>' +
+              '</div>' +
+              '<div class="cf__loan-result">' +
+                '<span class="cf__loan-result-label">当期利息</span>' +
+                '<span class="cf__loan-result-value cf__loan-result-value--muted" data-slot="interest">—</span>' +
+                '<span class="cf__loan-result-label">已还利息</span>' +
+                '<span class="cf__loan-result-value cf__loan-result-value--muted" data-slot="paidInterest">—</span>' +
+                '<span class="cf__loan-result-label">剩余利息</span>' +
+                '<span class="cf__loan-result-value cf__loan-result-value--muted" data-slot="remainInterest">—</span>' +
+                '<button class="cf__detail-btn" data-idx="' + idx + '">明细</button>' +
+              '</div>' +
+              '<div class="cf__loan-progress cf__loan-progress--muted" data-slot="progress">—</div>' +
+              '<div class="cf__detail-panel"></div>' +
+            '</div>';
+        }
+        card.innerHTML = html;
+        listEl.appendChild(card);
+      });
+
+      // 名称 / 金额输入
+      listEl.querySelectorAll('.cf__field-name, .cf__field-amount').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          var field = e.target.dataset.field;
+          if (field === 'amount') {
+            if (e.target.readOnly) return;
+            self.state.expenses[i].amount = parseFloat(e.target.value) || 0;
+          } else {
+            self.state.expenses[i].name = e.target.value;
+          }
+          self.debouncedCalc();
+        });
+        input.addEventListener('blur', function() { self.saveState(); });
+      });
+
+      // 固定/变动切换（结构变化 → 重渲染）
+      listEl.querySelectorAll('[data-field="category"]').forEach(function(sel) {
+        sel.addEventListener('change', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          self.state.expenses[i].category = e.target.value;
+          if (e.target.value === 'variable' && !self.state.expenses[i].loanType) {
+            self.state.expenses[i].loanType = 'equal-installment';
+          }
+          // 切回固定时关闭贷款开关并解锁金额框
+          if (e.target.value === 'fixed') {
+            self.state.expenses[i].isLoan = false;
+          }
+          self.renderExpenseList();
+          self.calculate();
+          self.saveState();
+        });
+      });
+
+      // 贷款开关（v3.4.1：开启才展开利率/期数/总额计算区）
+      listEl.querySelectorAll('[data-field="isLoan"]').forEach(function(cb) {
+        cb.addEventListener('change', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          self.state.expenses[i].isLoan = e.target.checked;
+          if (!e.target.checked) {
+            // 关闭贷款：解锁金额框，清掉贷款参数
+            self.state.expenses[i].totalAmount = 0;
+            self.state.expenses[i].totalMonths = 0;
+            self.state.expenses[i].annualRate = 0;
+          }
+          self.renderExpenseList();
+          self.calculate();
+          self.saveState();
+        });
+      });
+
+      // 贷款参数输入（不重渲染，原位更新结果）
+      listEl.querySelectorAll('[data-field="loanType"], [data-field="annualRate"], [data-field="totalMonths"], [data-field="currentPeriod"], [data-field="totalAmount"], [data-field="repayDay"]').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          var item = self.state.expenses[i];
+          var field = e.target.dataset.field;
+          if (field === 'loanType') {
+            item.loanType = e.target.value;
+            var rateInput = e.target.parentElement.querySelector('[data-field="annualRate"]');
+            if (rateInput) rateInput.disabled = (e.target.value === 'simple');
+          } else if (field === 'annualRate') {
+            item.annualRate = parseFloat(e.target.value) || 0;
+          } else if (field === 'totalMonths') {
+            item.totalMonths = parseInt(e.target.value, 10) || 0;
+            // 期限变小时，当前期同步钳制
+            if (item.currentPeriod && item.totalMonths && item.currentPeriod > item.totalMonths) {
+              item.currentPeriod = item.totalMonths;
+            }
+          } else if (field === 'currentPeriod') {
+            item.currentPeriod = parseInt(e.target.value, 10) || 0;
+            if (item.currentPeriod < 1) item.currentPeriod = 1;
+          } else if (field === 'repayDay') {
+            // v3.15：仅记录展示，不参与计算
+            var day = parseInt(e.target.value, 10);
+            item.repayDay = (day >= 1 && day <= 31) ? day : null;
+          } else {
+            item.totalAmount = parseFloat(e.target.value) || 0;
+          }
+          var cardEl = e.target.closest('.cf__expense-card');
+          if (cardEl) {
+            self.updateLoanResult(cardEl, item);
+            // 明细面板若已展开，同步刷新
+            var panel = cardEl.querySelector('.cf__detail-panel');
+            if (panel && panel.classList.contains('cf__detail-panel--open')) {
+              panel.innerHTML = self.buildDetailPanel(item);
+            }
+          }
+          self.debouncedCalc();
+        });
+        input.addEventListener('blur', function(e) {
+          self.saveState();
+          // v3.5：用户手动改了某笔贷款的当前期 → 以当前快照月为新基准，重设 baseLoanPeriods
+          var f = e.target && e.target.dataset.field;
+          if (f === 'currentPeriod' || f === 'totalMonths' || f === 'loanType' || f === 'annualRate' || f === 'totalAmount') {
+            self.resetBaseLoanPeriods();
+          }
+        });
+      });
+
+      // 明细按钮
+      listEl.querySelectorAll('.cf__detail-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          var item = self.state.expenses[i];
+          var cardEl = e.target.closest('.cf__expense-card');
+          var panel = cardEl ? cardEl.querySelector('.cf__detail-panel') : null;
+          if (!panel) return;
+          var isOpen = panel.classList.toggle('cf__detail-panel--open');
+          btn.textContent = isOpen ? '收起明细' : '明细';
+          if (isOpen) panel.innerHTML = self.buildDetailPanel(item);
+        });
+      });
+
+      // 删除按钮
+      listEl.querySelectorAll('.cf__delete').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var i = parseInt(e.target.dataset.idx, 10);
+          self.state.expenses.splice(i, 1);
+          if (self.state.expenses.length === 0) {
+            self.state.expenses.push({ id: self.genId(), name: '', amount: 0, category: 'variable' });
+          }
+          self.renderExpenseList();
+          self.calculate();
+          self.saveState();
+        });
+      });
+
+      // 初始化每张开启贷款的变动支出卡的结果区
+      listEl.querySelectorAll('.cf__expense-card').forEach(function(cardEl) {
+        var i = parseInt(cardEl.dataset.idx, 10);
+        var item = self.state.expenses[i];
+        if (item && item.category !== 'fixed' && item.isLoan) {
+          var loan = self.calcLoan(item);
+          if (loan) self.updateLoanResult(cardEl, item);
+        }
+      });
+    };
+
+    // ========== 计算与渲染 ==========
+    CashflowApp.prototype.debouncedCalc = function() {
+      var self = this;
+      if (this.calcTimer) clearTimeout(this.calcTimer);
+      this.calcTimer = setTimeout(function() {
+        self.calculate();
+        self.saveState();
+      }, 120);
+    };
+
+    CashflowApp.prototype.calculate = function() {
+      var totalIncome = this.state.incomes.reduce(function(s, it) { return s + (parseFloat(it.amount) || 0); }, 0);
+      var totalExpense = this.state.expenses.reduce(function(s, it) { return s + (parseFloat(it.amount) || 0); }, 0);
+      var balance = totalIncome - totalExpense;
+      var rate = totalIncome > 0 ? (balance / totalIncome * 100) : 0;
+
+      // 汇总四卡
+      document.getElementById('sumIncome').textContent = '¥' + this.formatNum(totalIncome);
+      document.getElementById('sumExpense').textContent = '¥' + this.formatNum(totalExpense);
+      document.getElementById('sumRate').textContent = rate.toFixed(1) + '%';
+      this.updateBalanceNumber(balance);
+
+      // 区块小计
+      document.getElementById('incomeTotal').textContent = '¥' + this.formatNum(totalIncome);
+      document.getElementById('expenseTotal').textContent = '¥' + this.formatNum(totalExpense);
+
+      // 贷款汇总（v3.4.3）
+      this.updateLoanSummary();
+
+      this.updateCharts();
+
+      // 桥接：月结余变化 → 右栏计划预测联动刷新
+      if (window.plansApp) window.plansApp.onBalanceChange();
+
+      // 总资产显示（v3.5：金融资产+实物净值，参考 kconstable/finance-tools equity 思路）
+      this.updateTotalAssets();
+
+      // v3.10：收支/快照月变化 → 退休测算联动
+      if (window.retireApp) window.retireApp.calculate();
+    };
+
+    // 右栏年化收益率读取
+    CashflowApp.prototype.getMonthlyRate = function() {
+      var sel = document.getElementById('rateSelect');
+      var annual = sel ? parseFloat(sel.value) : 0;
+      if (isNaN(annual)) annual = 0;
+      return annual / 100 / 12;
+    };
+
+    // 推算某月（0=基准月，offset月）的月结余
+    CashflowApp.prototype.getMonthlyBalanceAt = function(offset) {
+      var self = this;
+      var income = this.state.incomes.reduce(function(s, it) { return s + (parseFloat(it.amount) || 0); }, 0);
+      var expense = 0;
+      this.state.expenses.forEach(function(e) {
+        if (e.category === 'fixed') { expense += parseFloat(e.amount) || 0; return; }
+        if (!e.isLoan) { expense += parseFloat(e.amount) || 0; return; }
+        var tm = parseInt(e.totalMonths, 10) || 1;
+        var base = self.state.baseLoanPeriods && self.state.baseLoanPeriods[e.id] != null ? self.state.baseLoanPeriods[e.id] : (e.currentPeriod || 1);
+        var target = base + offset;
+        if (target < 1) target = 1;
+        if (target > tm) { expense += 0; return; }  // 已还完，不再计月供
+        var loan = self.calcLoan(e);
+        if (!loan) return;
+        expense += loan.schedule[target - 1].pay;
+      });
+      return income - expense;
+    };
+
+    // v3.10：金融资产（与总资产卡严格同口径）——供退休测算复用
+    // 金融资产 = Σ(第 i 月结余 × (1+r)^(offset − i))，i = 0..offset
+    CashflowApp.prototype.getFinancialAssets = function() {
+      var offset = Math.max(0, this.state.currentMonthOffset || 0);
+      var monthlyRate = this.getMonthlyRate();
+      var financial = 0;
+      for (var i = 0; i <= offset; i++) {
+        var bal = this.getMonthlyBalanceAt(i);  // 第 i 月结余
+        var periods = offset - i;
+        if (periods > 0 && monthlyRate > 0) bal *= Math.pow(1 + monthlyRate, periods);
+        financial += bal;
+      }
+      return financial;
+    };
+
+    // 总资产卡（金融资产复利滚存 + Σ贷款已还本金净值）
+    CashflowApp.prototype.updateTotalAssets = function() {
+      var box = document.getElementById('assetsSummary');
+      if (!box) return;
+      var offset = Math.max(0, this.state.currentMonthOffset || 0);  // 快照月到当前月经过了offset个月
+      var monthlyRate = this.getMonthlyRate();
+      var self = this;
+
+      var financial = this.getFinancialAssets();
+
+      // 实物净值 = Σ每笔贷款已还本金 = Σ(totalAmount − 当前快照月的剩余本金)
+      var equity = 0;
+      var loans = 0;
+      this.state.expenses.forEach(function(e) {
+        if (e.category === 'fixed' || !e.isLoan) return;
+        var loan = self.calcLoan(e);
+        if (!loan) return;
+        var cur = self.getCurrentPeriod(e, loan);
+        var remain = cur === 1 ? (parseFloat(e.totalAmount) || 0) : loan.schedule[cur - 2].remain;
+        equity += (parseFloat(e.totalAmount) || 0) - remain;
+        loans++;
+      });
+
+      var fmt = function(v) { return '¥' + self.formatNum(v); };
+      var total = financial + equity;
+
+      // v3.7：与贷款汇总 / 未来计划 plans__stat 视觉规格一致的 6 张 stat 卡（2×3）
+      var stat = function(labelEn, labelCn, value, cls, sub) {
+        return '<div class="sub-stat">' +
+          '<div class="sub-stat-label">' + labelEn + ' · ' + labelCn + '</div>' +
+          '<div class="sub-stat-value' + (cls ? ' sub-stat-value--' + cls : '') + '">' + value + '</div>' +
+          (sub ? '<div class="sub-stat-sub">' + sub + '</div>' : '') +
+        '</div>';
+      };
+
+      box.innerHTML =
+        '<div class="sub-block">' +
+          '<div class="sub-head">' +
+            '<h3 class="sub-head__title">总资产 · ' + this.getSnapshotMonth() + '</h3>' +
+            '<span class="sub-head__eyebrow">NET WORTH</span>' +
+          '</div>' +
+          '<div class="sub-stats">' +
+            stat('FINANCIAL', '金融资产', fmt(financial), '', '月结余滚存累计') +
+            stat('ELAPSED MONTHS', '已还期数', offset + ' 月', 'muted', offset > 0 ? '连续复利 '+offset+' 期' : '当前快照月，未开始生息') +
+            stat('PHYSICAL EQUITY', '实物净值（已还本金）', fmt(equity), '', '贷款已还本金合计') +
+            stat('LOAN COUNT', '贷款笔数', loans + ' 笔', 'muted', '含零息/等额本金/等额本息') +
+            stat('TOTAL NET WORTH', '总资产', fmt(total), '', '金融资产 + 实物净值') +
+            stat('MONTHLY RATE', '月利率', (monthlyRate * 100).toFixed(3) + '%', 'gold', '年化收益率 ÷ 12') +
+          '</div>' +
+        '</div>';
+    };
+
+    CashflowApp.prototype.updateBalanceNumber = function(balance) {
+      var target = document.getElementById('sumBalance');
+      var finalVal = Math.round(balance);
+      var isNeg = finalVal < 0;
+
+      if (this.countUpInstance && !this.countUpInstance.error) {
+        if (this.countUpInstance.rAF) {
+          this.countUpInstance.endVal = finalVal;
+        } else {
+          this.countUpInstance.startVal = this.countUpInstance.frameVal;
+          this.countUpInstance.endVal = finalVal;
+          this.countUpInstance.startTime = null;
+          this.countUpInstance.duration = 1500;
+          this.countUpInstance.rAF = requestAnimationFrame(this.countUpInstance.count.bind(this.countUpInstance));
+        }
+      } else {
+        this.countUpInstance = new CountUp(target, finalVal, {
+          startVal: 0, duration: 1.5, useEasing: true, separator: ',', prefix: '¥'
+        });
+        if (!this.countUpInstance.error) this.countUpInstance.start();
+        else target.textContent = '¥' + this.formatNum(finalVal);
+      }
+
+      target.classList.toggle('sum__value--danger', isNeg);
+    };
+
+    // ========== Chart.js ==========
+    CashflowApp.prototype.initCharts = function() {
+      if (typeof Chart === 'undefined') {
+        console.warn('[Cashflow] Chart.js 未加载，图表不可用');
+        return;
+      }
+      var self = this;
+      this.colorPalette = ['#2D4A3E', '#B8935A', '#5C7A6E', '#D4B074', '#8FA89B', '#8A6F3F', '#3E5C50', '#C9A679'];
+
+      try {
+        var incomeCtx = document.getElementById('incomeChart').getContext('2d');
+        this.incomeChart = new Chart(incomeCtx, {
+          type: 'doughnut',
+          data: {
+            labels: [],
+            datasets: [{ data: [], backgroundColor: this.colorPalette, borderColor: '#FAFAF7', borderWidth: 2 }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { family: 'Noto Sans SC', size: 11 }, color: '#1A1A1A', boxWidth: 12, padding: 8 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    var val = ctx.parsed;
+                    var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                    var pct = total > 0 ? (val / total * 100).toFixed(1) : 0;
+                    return ctx.label + ': ¥' + self.formatNum(val) + ' (' + pct + '%)';
+                  }
+                }
+              }
+            },
+            cutout: '60%'
+          }
+        });
+
+        var expenseCtx = document.getElementById('expenseChart').getContext('2d');
+        this.expenseChart = new Chart(expenseCtx, {
+          type: 'bar',
+          data: {
+            labels: [],
+            datasets: [{ data: [], backgroundColor: '#2D4A3E', borderColor: '#2D4A3E', borderWidth: 1, borderRadius: 4 }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: function(ctx) { return '¥' + self.formatNum(ctx.parsed.x); } } }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  font: { family: 'JetBrains Mono', size: 10 },
+                  color: '#8A8A8A',
+                  callback: function(val) { return '¥' + self.formatNum(val); }
+                },
+                grid: { color: '#E8E6E1' }
+              },
+              y: {
+                ticks: { font: { family: 'Noto Sans SC', size: 11 }, color: '#1A1A1A' },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      } catch (e) {
+        console.error('[Cashflow] 图表初始化失败', e);
+      }
+    };
+
+    CashflowApp.prototype.updateCharts = function() {
+      if (!this.incomeChart || !this.expenseChart) return;
+
+      var incomeData = this.state.incomes.filter(function(it) { return it.name && it.amount > 0; });
+      if (incomeData.length === 0) {
+        this.incomeChart.data.labels = ['（无数据）'];
+        this.incomeChart.data.datasets[0].data = [1];
+        this.incomeChart.data.datasets[0].backgroundColor = ['#E8E6E1'];
+      } else {
+        this.incomeChart.data.labels = incomeData.map(function(d) { return d.name; });
+        this.incomeChart.data.datasets[0].data = incomeData.map(function(d) { return parseFloat(d.amount) || 0; });
+        this.incomeChart.data.datasets[0].backgroundColor = this.colorPalette;
+      }
+      this.incomeChart.update('none');
+
+      var expenseData = this.state.expenses.filter(function(it) { return it.name && it.amount > 0; });
+      if (expenseData.length === 0) {
+        this.expenseChart.data.labels = ['（无数据）'];
+        this.expenseChart.data.datasets[0].data = [0];
+        this.expenseChart.data.datasets[0].backgroundColor = ['#E8E6E1'];
+      } else {
+        this.expenseChart.data.labels = expenseData.map(function(d) { return d.name; });
+        this.expenseChart.data.datasets[0].data = expenseData.map(function(d) { return parseFloat(d.amount) || 0; });
+        this.expenseChart.data.datasets[0].backgroundColor = expenseData.map(function(d) {
+          return d.category === 'fixed' ? '#2D4A3E' : '#B8935A';
+        });
+        this.expenseChart.data.datasets[0].borderColor = this.expenseChart.data.datasets[0].backgroundColor;
+      }
+      this.expenseChart.update('none');
+    };
+
+    // ========== 工具 ==========
+    CashflowApp.prototype.formatNum = function(n) {
+      if (typeof n !== 'number') n = parseFloat(n) || 0;
+      return Math.round(n).toLocaleString('zh-CN');
+    };
+
+    CashflowApp.prototype.escape = function(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+
+    // ========== PlansApp（v3.4 移植合并，月结余直接读左栏） ==========
+    // Plan = { id, name, targetAmount, priority(1|2|3), deadline(YYYY-MM), status, createdAt, note? }
+
+    function PlansApp() {
+      this.STORAGE_KEY = 'huasuan_plans';
+      this.state = this.loadState();
+      this.countUpInstance = null;
+      this.editingPlanId = null;
+      this.selectedPriority = 2;
+      this.selectedRate = 0;
+      this.monthlyBalance = 0;
+      this.init();
+    }
+
+    PlansApp.prototype.getDefaultPlans = function() {
+      var now = new Date().toISOString();
+      return [
+        { id: this.genId(), name: '3年后买车', targetAmount: 120000, priority: 1, deadline: '2029-07', status: 'active', createdAt: now, note: '紧凑型轿车，含购置税' },
+        { id: this.genId(), name: '5年后买房首付', targetAmount: 600000, priority: 1, deadline: '2031-07', status: 'active', createdAt: now, note: '一线城市小户型 30% 首付' },
+        { id: this.genId(), name: '应急基金', targetAmount: 60000, priority: 2, deadline: '2027-01', status: 'active', createdAt: now, note: '6 个月生活费' },
+        { id: this.genId(), name: '日本旅行', targetAmount: 20000, priority: 3, deadline: '2027-05', status: 'paused', createdAt: now, note: '' }
+      ];
+    };
+
+    PlansApp.prototype.genId = function() {
+      return 'plan_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+    };
+
+    PlansApp.prototype.loadState = function() {
+      try {
+        var raw = localStorage.getItem(this.STORAGE_KEY);
+        if (!raw) return { plans: this.getDefaultPlans(), sortBy: 'priority' };
+        var parsed = JSON.parse(raw);
+        if (!parsed.plans) return { plans: this.getDefaultPlans(), sortBy: 'priority' };
+        return { plans: parsed.plans, sortBy: parsed.sortBy || 'priority' };
+      } catch (e) {
+        console.warn('[Plans] 数据解析失败，使用默认值', e);
+        return { plans: this.getDefaultPlans(), sortBy: 'priority' };
+      }
+    };
+
+    PlansApp.prototype.saveState = function() {
+      try {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+      } catch (e) {
+        console.error('[Plans] 保存失败', e);
+        alert('存储空间已满，请清理浏览器数据后重试');
+      }
+    };
+
+    PlansApp.prototype.init = function() {
+      this.bindEvents();
+      this.updateSortTabs();
+      this.render();
+    };
+
+    PlansApp.prototype.bindEvents = function() {
+      var self = this;
+
+      document.getElementById('addPlanBtn').addEventListener('click', function() {
+        self.openModal(null);
+      });
+
+      document.getElementById('modalCloseBtn').addEventListener('click', function() { self.closeModal(); });
+      document.getElementById('modalCancelBtn').addEventListener('click', function() { self.closeModal(); });
+      document.getElementById('planModal').addEventListener('click', function(e) {
+        if (e.target.id === 'planModal') self.closeModal();
+      });
+
+      document.getElementById('modalSaveBtn').addEventListener('click', function() { self.savePlan(); });
+
+      document.querySelectorAll('.plans__priority-option').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          self.selectedPriority = parseInt(e.target.dataset.priority, 10);
+          self.updatePrioritySelection();
+        });
+      });
+
+      document.querySelectorAll('.plans__sort-tab').forEach(function(tab) {
+        tab.addEventListener('click', function(e) {
+          self.state.sortBy = e.target.dataset.sort;
+          self.updateSortTabs();
+          self.render();
+          self.saveState();
+        });
+      });
+
+      document.getElementById('rateSelect').addEventListener('change', function(e) {
+        self.selectedRate = parseFloat(e.target.value);
+        self.render();
+        // v3.5：利率变化 → 重算总资产卡
+        if (window.cashflowApp && typeof window.cashflowApp.updateTotalAssets === 'function') {
+          window.cashflowApp.updateTotalAssets();
+        }
+        // v3.10：利率变化 → 退休测算联动
+        if (window.retireApp) window.retireApp.calculate();
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') self.closeModal();
+      });
+    };
+
+    PlansApp.prototype.updateSortTabs = function() {
+      var self = this;
+      document.querySelectorAll('.plans__sort-tab').forEach(function(tab) {
+        tab.classList.toggle('active', tab.dataset.sort === self.state.sortBy);
+      });
+    };
+
+    PlansApp.prototype.updatePrioritySelection = function() {
+      var self = this;
+      document.querySelectorAll('.plans__priority-option').forEach(function(btn) {
+        var p = parseInt(btn.dataset.priority, 10);
+        btn.classList.toggle('plans__priority-option--selected', p === self.selectedPriority);
+      });
+    };
+
+    PlansApp.prototype.getSortedPlans = function() {
+      var plans = this.state.plans.slice();
+      var sortBy = this.state.sortBy;
+      var priorityOrder = { 1: 0, 2: 1, 3: 2 };
+
+      plans.sort(function(a, b) {
+        if (a.status === 'completed' && b.status !== 'completed') return 1;
+        if (b.status === 'completed' && a.status !== 'completed') return -1;
+        if (sortBy === 'priority') {
+          if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+          }
+          return (a.deadline || '').localeCompare(b.deadline || '');
+        } else if (sortBy === 'deadline') {
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return a.deadline.localeCompare(b.deadline);
+        } else if (sortBy === 'createdAt') {
+          return (b.createdAt || '').localeCompare(a.createdAt || '');
+        }
+        return 0;
+      });
+      return plans;
+    };
+
+    PlansApp.prototype.render = function() {
+      this.monthlyBalance = this.readMonthlyBalance();
+      this.updateForecastSettings();
+      this.renderStats();
+      this.renderList();
+    };
+
+    // 月结余直接来自同页左栏 CashflowApp（v3.4 合并后无需跨页读取）
+    PlansApp.prototype.readMonthlyBalance = function() {
+      var cf = window.cashflowApp;
+      if (!cf || !cf.state) return 0;
+      var income = cf.state.incomes.reduce(function(s, it) { return s + (parseFloat(it.amount) || 0); }, 0);
+      var expense = cf.state.expenses.reduce(function(s, it) { return s + (parseFloat(it.amount) || 0); }, 0);
+      return income - expense;
+    };
+
+    PlansApp.prototype.onBalanceChange = function() {
+      this.render();
+    };
+
+    PlansApp.prototype.updateForecastSettings = function() {
+      var balanceEl = document.getElementById('monthlyBalanceDisplay');
+      var hintEl = document.getElementById('monthlyBalanceHint');
+      if (this.monthlyBalance > 0) {
+        balanceEl.textContent = '¥' + this.formatNum(this.monthlyBalance);
+        hintEl.textContent = '来自上方现金流';
+        hintEl.style.color = 'var(--color-text-muted)';
+      } else {
+        balanceEl.textContent = '¥0';
+        hintEl.textContent = '请先在上方填写现金流';
+        hintEl.style.color = 'var(--color-error)';
+      }
+    };
+
+    PlansApp.prototype.renderStats = function() {
+      var plans = this.state.plans;
+      var totalAmount = 0;
+      var active = 0, completed = 0, paused = 0;
+
+      plans.forEach(function(p) {
+        if (p.status !== 'completed') totalAmount += parseFloat(p.targetAmount) || 0;
+        if (p.status === 'active') active++;
+        else if (p.status === 'completed') completed++;
+        else if (p.status === 'paused') paused++;
+      });
+
+      document.getElementById('statActive').textContent = active;
+      document.getElementById('statCompleted').textContent = completed;
+      document.getElementById('statPaused').textContent = paused;
+
+      var target = document.getElementById('statTotalAmount');
+      var finalVal = Math.round(totalAmount);
+      if (this.countUpInstance && !this.countUpInstance.error) {
+        if (this.countUpInstance.rAF) {
+          this.countUpInstance.endVal = finalVal;
+        } else {
+          this.countUpInstance.startVal = this.countUpInstance.frameVal;
+          this.countUpInstance.endVal = finalVal;
+          this.countUpInstance.startTime = null;
+          this.countUpInstance.duration = 1500;
+          this.countUpInstance.rAF = requestAnimationFrame(this.countUpInstance.count.bind(this.countUpInstance));
+        }
+      } else {
+        this.countUpInstance = new CountUp(target, finalVal, {
+          startVal: 0, duration: 1.5, useEasing: true, separator: ','
+        });
+        if (!this.countUpInstance.error) this.countUpInstance.start();
+        else target.textContent = this.formatNum(finalVal);
+      }
+    };
+
+    PlansApp.prototype.renderList = function() {
+      var listEl = document.getElementById('plansList');
+      var emptyEl = document.getElementById('plansEmpty');
+      var self = this;
+
+      if (this.state.plans.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      emptyEl.style.display = 'none';
+
+      var plans = this.getSortedPlans();
+      listEl.innerHTML = '';
+      plans.forEach(function(plan) {
+        listEl.appendChild(self.renderPlanCard(plan));
+      });
+    };
+
+    PlansApp.prototype.renderPlanCard = function(plan) {
+      var self = this;
+      var card = document.createElement('div');
+      var priorityClass = 'plans__card--priority-' + plan.priority;
+      var statusClass = plan.status === 'completed' ? 'plans__card--completed' : '';
+      card.className = 'plans__card ' + priorityClass + ' ' + statusClass;
+
+      var priorityText = { 1: '高', 2: '中', 3: '低' }[plan.priority];
+      var statusText = { active: '进行中', completed: '已完成', paused: '已暂停' }[plan.status];
+      var deadlineInfo = this.formatDeadline(plan.deadline, plan.status);
+      var forecastInfo = this.formatForecast(plan);
+
+      card.innerHTML =
+        '<div class="plans__card-header">' +
+          '<div class="plans__card-title-row">' +
+            '<span class="plans__card-name">' + this.escape(plan.name) + '</span>' +
+            '<span class="plans__priority-badge plans__priority-badge--' + plan.priority + '">' + priorityText + '优先级</span>' +
+            '<span class="plans__status-badge plans__status-badge--' + plan.status + '">' + statusText + '</span>' +
+          '</div>' +
+          '<div class="plans__card-actions">' +
+            '<button class="plans__action-btn" data-action="toggle" data-id="' + plan.id + '" title="切换状态">↻</button>' +
+            '<button class="plans__action-btn" data-action="edit" data-id="' + plan.id + '" title="编辑">✎</button>' +
+            '<button class="plans__action-btn plans__action-btn--danger" data-action="delete" data-id="' + plan.id + '" title="删除">×</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="plans__card-body">' +
+          '<div class="plans__card-field">' +
+            '<div class="plans__field-label">目标金额</div>' +
+            '<div class="plans__field-value plans__field-value--primary">¥' + this.formatNum(plan.targetAmount) + '</div>' +
+          '</div>' +
+          '<div class="plans__card-field">' +
+            '<div class="plans__field-label">截止日期</div>' +
+            '<div class="plans__field-value">' + (plan.deadline || '未设置') + '</div>' +
+          '</div>' +
+          '<div class="plans__card-field">' +
+            '<div class="plans__field-label">' + deadlineInfo.label + '</div>' +
+            '<div class="plans__field-value ' + (deadlineInfo.warning ? 'plans__field-value--warning' : '') + '">' + deadlineInfo.text + '</div>' +
+          '</div>' +
+          '<div class="plans__card-field">' +
+            '<div class="plans__field-label">预计完成</div>' +
+            '<div class="plans__field-value ' + forecastInfo.valueClass + '">' + forecastInfo.text + '</div>' +
+          '</div>' +
+        '</div>' +
+        (plan.note ? '<div class="plans__card-note">' + this.escape(plan.note) + '</div>' : '');
+
+      card.querySelectorAll('.plans__action-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          var action = e.target.dataset.action;
+          var id = e.target.dataset.id;
+          if (action === 'edit') self.openModal(id);
+          else if (action === 'delete') self.deletePlan(id);
+          else if (action === 'toggle') self.toggleStatus(id);
+        });
+      });
+
+      return card;
+    };
+
+    PlansApp.prototype.formatDeadline = function(deadline, status) {
+      if (!deadline) return { label: '剩余时间', text: '未设置', warning: false };
+      if (status === 'completed') return { label: '状态', text: '已达成', warning: false };
+
+      var now = new Date();
+      var parts = deadline.split('-');
+      var monthsDiff = (parseInt(parts[0], 10) - now.getFullYear()) * 12 + (parseInt(parts[1], 10) - (now.getMonth() + 1));
+
+      if (monthsDiff > 0) {
+        var years = Math.floor(monthsDiff / 12);
+        var months = monthsDiff % 12;
+        var text = '';
+        if (years > 0) text += years + ' 年 ';
+        if (months > 0) text += months + ' 个月';
+        return { label: '剩余时间', text: text.trim() + '后', warning: monthsDiff < 3 };
+      } else if (monthsDiff === 0) {
+        return { label: '剩余时间', text: '本月到期', warning: true };
+      }
+      var overdue = -monthsDiff;
+      var oy = Math.floor(overdue / 12);
+      var om = overdue % 12;
+      var text2 = '';
+      if (oy > 0) text2 += oy + ' 年 ';
+      if (om > 0) text2 += om + ' 个月';
+      return { label: '已逾期', text: text2.trim(), warning: true };
+    };
+
+    // 每笔独立计算：0% 线性 ceil(目标÷月结余)；>0% 月复利迭代
+    PlansApp.prototype.calcPlanMonths = function(targetAmount, monthlyBalance, annualRatePercent) {
+      if (monthlyBalance <= 0 || targetAmount <= 0) return Infinity;
+      if (annualRatePercent === 0) return Math.ceil(targetAmount / monthlyBalance);
+
+      var monthlyRate = annualRatePercent / 100 / 12;
+      var accumulated = 0;
+      var months = 0;
+      var maxMonths = 1200;
+      while (accumulated < targetAmount && months < maxMonths) {
+        accumulated = accumulated * (1 + monthlyRate) + monthlyBalance;
+        months++;
+      }
+      return months >= maxMonths ? Infinity : months;
+    };
+
+    PlansApp.prototype.formatMonths = function(months) {
+      if (!isFinite(months)) return '—';
+      if (months <= 0) return '已达成';
+      var years = Math.floor(months / 12);
+      var remMonths = months % 12;
+      if (years === 0) return remMonths + ' 个月';
+      if (remMonths === 0) return years + ' 年';
+      return years + ' 年 ' + remMonths + ' 月';
+    };
+
+    PlansApp.prototype.formatForecast = function(plan) {
+      if (plan.status === 'completed') return { text: '已达成', valueClass: 'plans__field-value--primary' };
+      if (plan.status === 'paused') return { text: '已暂停', valueClass: 'plans__field-value--muted' };
+      if (this.monthlyBalance <= 0) return { text: '请先填写现金流', valueClass: 'plans__field-value--warning' };
+
+      var target = parseFloat(plan.targetAmount) || 0;
+      if (target <= 0) return { text: '金额无效', valueClass: 'plans__field-value--warning' };
+
+      var months = this.calcPlanMonths(target, this.monthlyBalance, this.selectedRate);
+      var text = '至少 ' + this.formatMonths(months);
+      var warning = false;
+      if (plan.deadline && isFinite(months)) {
+        var completeDate = new Date();
+        completeDate.setMonth(completeDate.getMonth() + months);
+        var deadlineDate = new Date(plan.deadline + '-01');
+        if (deadlineDate < completeDate) {
+          warning = true;
+          text = '⚠ ' + text + '（已超期）';
+        }
+      }
+      return { text: text, valueClass: warning ? 'plans__field-value--warning' : 'plans__field-value--primary' };
+    };
+
+    PlansApp.prototype.openModal = function(planId) {
+      this.editingPlanId = planId;
+
+      if (planId) {
+        var plan = this.state.plans.find(function(p) { return p.id === planId; });
+        if (!plan) return;
+        document.getElementById('modalTitle').textContent = '编辑计划';
+        document.getElementById('formName').value = plan.name;
+        document.getElementById('formAmount').value = plan.targetAmount;
+        document.getElementById('formDeadline').value = plan.deadline || '';
+        document.getElementById('formStatus').value = plan.status;
+        document.getElementById('formNote').value = plan.note || '';
+        this.selectedPriority = plan.priority;
+      } else {
+        document.getElementById('modalTitle').textContent = '新建计划';
+        document.getElementById('formName').value = '';
+        document.getElementById('formAmount').value = '';
+        document.getElementById('formDeadline').value = '';
+        document.getElementById('formStatus').value = 'active';
+        document.getElementById('formNote').value = '';
+        this.selectedPriority = 2;
+      }
+
+      this.updatePrioritySelection();
+      document.getElementById('planModal').classList.add('show');
+      setTimeout(function() { document.getElementById('formName').focus(); }, 50);
+    };
+
+    PlansApp.prototype.closeModal = function() {
+      document.getElementById('planModal').classList.remove('show');
+      this.editingPlanId = null;
+    };
+
+    PlansApp.prototype.savePlan = function() {
+      var name = document.getElementById('formName').value.trim();
+      var amount = parseFloat(document.getElementById('formAmount').value);
+      var deadline = document.getElementById('formDeadline').value;
+      var status = document.getElementById('formStatus').value;
+      var note = document.getElementById('formNote').value.trim();
+
+      if (!name) {
+        alert('请填写计划名称');
+        document.getElementById('formName').focus();
+        return;
+      }
+      if (!amount || amount <= 0 || isNaN(amount)) {
+        alert('请填写有效的目标金额');
+        document.getElementById('formAmount').focus();
+        return;
+      }
+
+      if (this.editingPlanId) {
+        var self = this;
+        var plan = this.state.plans.find(function(p) { return p.id === self.editingPlanId; });
+        if (plan) {
+          plan.name = name;
+          plan.targetAmount = amount;
+          plan.priority = this.selectedPriority;
+          plan.deadline = deadline;
+          plan.status = status;
+          plan.note = note;
+        }
+      } else {
+        this.state.plans.push({
+          id: this.genId(),
+          name: name,
+          targetAmount: amount,
+          priority: this.selectedPriority,
+          deadline: deadline,
+          status: status,
+          createdAt: new Date().toISOString(),
+          note: note
+        });
+      }
+
+      this.saveState();
+      this.closeModal();
+      this.render();
+    };
+
+    PlansApp.prototype.deletePlan = function(id) {
+      var plan = this.state.plans.find(function(p) { return p.id === id; });
+      if (!plan) return;
+      if (!confirm('确定删除"' + plan.name + '"？此操作不可恢复。')) return;
+      this.state.plans = this.state.plans.filter(function(p) { return p.id !== id; });
+      this.saveState();
+      this.render();
+    };
+
+    PlansApp.prototype.toggleStatus = function(id) {
+      var plan = this.state.plans.find(function(p) { return p.id === id; });
+      if (!plan) return;
+      var cycle = { active: 'completed', completed: 'paused', paused: 'active' };
+      plan.status = cycle[plan.status] || 'active';
+      this.saveState();
+      this.render();
+    };
+
+    // 载入示例 / 清空（与现金流数据栏按钮联动）
+    PlansApp.prototype.loadSample = function() {
+      this.state = { plans: this.getDefaultPlans(), sortBy: this.state.sortBy || 'priority' };
+      this.saveState();
+      this.updateSortTabs();
+      this.render();
+    };
+
+    PlansApp.prototype.clearAll = function() {
+      this.state = { plans: [], sortBy: this.state.sortBy || 'priority' };
+      this.saveState();
+      this.render();
+    };
+
+    PlansApp.prototype.formatNum = function(n) {
+      if (typeof n !== 'number') n = parseFloat(n) || 0;
+      return Math.round(n).toLocaleString('zh-CN');
+    };
+
+    PlansApp.prototype.escape = function(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+
+    // ========== v3.10 退休测算 ==========
+    // 准则：从退休月起不工作（可含被动收入），资产支撑 360 个月（30 年）支出
+    // 口径：动态模拟 + 通胀（月支出按年通胀递增；贷款月供按合同固定，还完自动扣）
+    function RetireApp() {
+      this.storageKey = 'huasuan_retire';
+      this.params = { passiveIncome: 0, inflation: 2.5 };
+      this.loadState();
+      this.syncInputs();
+      this.bindEvents();
+    }
+
+    RetireApp.prototype.loadState = function() {
+      try {
+        var raw = localStorage.getItem(this.storageKey);
+        if (!raw) return;
+        var p = JSON.parse(raw);
+        if (typeof p.passiveIncome === 'number' && p.passiveIncome >= 0) this.params.passiveIncome = p.passiveIncome;
+        if (typeof p.inflation === 'number' && p.inflation >= 0) this.params.inflation = Math.min(p.inflation, 10);
+      } catch (e) { /* 忽略损坏数据 */ }
+    };
+
+    RetireApp.prototype.saveState = function() {
+      try {
+        localStorage.setItem(this.storageKey, JSON.stringify(this.params));
+      } catch (e) { /* 存储失败不阻塞 */ }
+    };
+
+    RetireApp.prototype.syncInputs = function() {
+      var p = document.getElementById('retirePassive');
+      var i = document.getElementById('retireInflation');
+      if (p) p.value = this.params.passiveIncome;
+      if (i) i.value = this.params.inflation;
+    };
+
+    RetireApp.prototype.readInputs = function() {
+      var p = parseFloat(document.getElementById('retirePassive').value);
+      this.params.passiveIncome = (isNaN(p) || p < 0) ? 0 : p;
+      var i = parseFloat(document.getElementById('retireInflation').value);
+      this.params.inflation = (isNaN(i) || i < 0) ? 0 : Math.min(i, 10);
+    };
+
+    RetireApp.prototype.bindEvents = function() {
+      var self = this;
+      var timer = null;
+      var onChange = function() {
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+          self.readInputs();
+          self.saveState();
+          self.calculate();
+        }, 300);
+      };
+      ['retirePassive', 'retireInflation'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', onChange);
+      });
+    };
+
+    RetireApp.prototype.calculate = function() {
+      var cf = window.cashflowApp;
+      if (!cf || !cf.state || !document.getElementById('retireCard')) return;
+
+      var MAX_T = 600;        // 搜索上限：50 年
+      var RETIRE_M = 360;     // 退休后支撑月数：30 年
+      var offset0 = Math.max(0, cf.state.currentMonthOffset || 0);  // 当前快照月相对基准月偏移
+      var r = cf.getMonthlyRate();
+      var passive = this.params.passiveIncome;
+      var inf = this.params.inflation / 100;
+
+      // 非贷款月支出（固定 + 非贷款变动）
+      var nonLoanExp = 0;
+      cf.state.expenses.forEach(function(e) {
+        if (e.category === 'fixed' || !e.isLoan) nonLoanExp += parseFloat(e.amount) || 0;
+      });
+
+      // 预计算贷款月供数组：loanPay[m] = 基准月起第 m 月的活跃贷款月供合计
+      // 期数判断与 getMonthlyBalanceAt 同口径：k = base + m，1 ≤ k ≤ n 时计 schedule[k-1].pay
+      var horizon = offset0 + MAX_T + RETIRE_M + 2;
+      var loanPay = [];
+      for (var z = 0; z < horizon; z++) loanPay.push(0);
+      cf.state.expenses.forEach(function(e) {
+        if (e.category === 'fixed' || !e.isLoan) return;
+        var loan = cf.calcLoan(e);
+        if (!loan) return;
+        var base = cf.state.baseLoanPeriods && cf.state.baseLoanPeriods[e.id] != null
+          ? cf.state.baseLoanPeriods[e.id] : (e.currentPeriod || 1);
+        var tm = parseInt(e.totalMonths, 10) || 1;
+        for (var m = 0; m < horizon; m++) {
+          var k = base + m;
+          if (k >= 1 && k <= tm) loanPay[m] += loan.schedule[k - 1].pay;
+        }
+      });
+
+      // 通胀因子：第 m 月（m=1..360）非贷款支出 = nonLoanExp × (1+inf)^⌊(m−1)/12⌋
+      var infFactor = [];
+      for (var y = 0; y <= 30; y++) infFactor.push(Math.pow(1 + inf, y));
+
+      // 积累期资产（与总资产卡公式严格一致）：A(0)=当前金融资产，A(m)=A(m−1)×(1+r)+第m月结余
+      var finAssets = cf.getFinancialAssets();
+      var A = [finAssets];
+      for (var m = 1; m <= MAX_T; m++) {
+        A.push(A[m - 1] * (1 + r) + cf.getMonthlyBalanceAt(offset0 + m));
+      }
+
+      // 可行性：从退休月起 360 个月，每月末资产 ≥ 0
+      var canRetire = function(t) {
+        var a = A[t];
+        for (var m = 1; m <= RETIRE_M; m++) {
+          a = a * (1 + r) + passive;
+          a -= nonLoanExp * infFactor[Math.floor((m - 1) / 12)] + loanPay[offset0 + t + m];
+          if (a < 0) return false;
+        }
+        return true;
+      };
+
+      // 所需资产（反推）：a(360)=0 → a(m−1)=(a(m)−passive+expense(m))/(1+r)
+      var needed = function(t) {
+        var a = 0;
+        for (var m = RETIRE_M; m >= 1; m--) {
+          a = (a - passive + nonLoanExp * infFactor[Math.floor((m - 1) / 12)] + loanPay[offset0 + t + m]) / (1 + r);
+        }
+        return a;
+      };
+
+      // 搜索最早可行 t*
+      var tStar = -1;
+      for (var t = 0; t <= MAX_T; t++) {
+        if (canRetire(t)) { tStar = t; break; }
+      }
+
+      this.render({
+        tStar: tStar,
+        MAX_T: MAX_T,
+        finAssets: finAssets,
+        assetsAt: tStar >= 0 ? A[tStar] : null,
+        neededAt: tStar >= 0 ? needed(tStar) : null,
+        neededNow: needed(0),
+        monthlyExp: nonLoanExp + loanPay[offset0],
+        ratePct: (r * 12 * 100),
+        passive: passive
+      });
+    };
+
+    RetireApp.prototype.render = function(res) {
+      var cf = window.cashflowApp;
+      var dateEl = document.getElementById('retireDate');
+      var subEl = document.getElementById('retireSub');
+      var assetsAtEl = document.getElementById('retireAssetsAt');
+      var neededAtEl = document.getElementById('retireNeededAt');
+      var neededNowEl = document.getElementById('retireNeededNow');
+      var fillEl = document.getElementById('retireProgressFill');
+      var textEl = document.getElementById('retireProgressText');
+      var noteEl = document.getElementById('retireNote');
+      if (!dateEl) return;
+
+      var fmt = function(v) { return '¥' + Math.round(v).toLocaleString('zh-CN'); };
+
+      if (res.tStar < 0) {
+        // 50 年内无解
+        dateEl.textContent = '50年内难退休';
+        dateEl.classList.add('retire__date--na');
+        subEl.textContent = '月结余不足或资产缺口过大 · 可提高结余/被动收入后再试';
+        assetsAtEl.textContent = '—';
+        neededAtEl.textContent = '—';
+        neededNowEl.textContent = fmt(res.neededNow);
+        var pct0 = res.neededNow > 0 ? res.finAssets / res.neededNow * 100 : 100;
+        fillEl.style.width = Math.max(0, Math.min(100, pct0)) + '%';
+        textEl.textContent = '当前进度为 ' + pct0.toFixed(0) + '%（当前金融资产 ÷ 立即退休所需）';
+      } else {
+        dateEl.classList.remove('retire__date--na');
+        // 退休年月 = 当前快照月 + t* 个月
+        var parts = cf.getSnapshotMonth().split('-');
+        var totalM = parseInt(parts[0], 10) * 12 + (parseInt(parts[1], 10) - 1) + res.tStar;
+        var ry = Math.floor(totalM / 12);
+        var rm = (totalM % 12) + 1;
+        dateEl.textContent = ry + '年' + rm + '月';
+
+        var yrs = Math.floor(res.tStar / 12);
+        var mos = res.tStar % 12;
+        var bits = [];
+        if (res.tStar === 0) {
+          bits.push('已达成 · 可立即退休');
+        } else {
+          bits.push('还有 ' + yrs + ' 年 ' + mos + ' 个月');
+        }
+        subEl.textContent = bits.join(' · ');
+
+        assetsAtEl.textContent = fmt(res.assetsAt);
+        neededAtEl.textContent = fmt(res.neededAt);
+        neededNowEl.textContent = fmt(res.neededNow);
+
+        var pct = res.neededNow > 0 ? res.finAssets / res.neededNow * 100 : 100;
+        fillEl.style.width = Math.max(0, Math.min(100, pct)) + '%';
+        textEl.textContent = res.neededNow > 0
+          ? '当前进度为 ' + pct.toFixed(0) + '%（当前金融资产 ÷ 立即退休所需）'
+          : '支出已由被动收入覆盖，随时可退休';
+      }
+
+      noteEl.textContent = '口径：月支出 ' + fmt(res.monthlyExp) + '/月（含贷款月供，还完自动扣）' +
+        ' · 收益率 ' + parseFloat(res.ratePct.toFixed(2)) + '%/年（跟预测设置联动）' +
+        ' · 通胀 ' + this.params.inflation + '%/年 · 支撑 30 年（通胀后）' +
+        (res.passive > 0 ? ' · 被动收入 ' + fmt(res.passive) + '/月（固定不随通胀）' : '');
+    };
+
+    // ========== v3.12 利率参考卡 ==========
+    // 数据来自 assets/rates.js（TRAE 定时任务每周更新）；rates.js 缺失时卡片保持占位、rateSelect 用静态备选
+    function initRatesCard() {
+      var rates = window.HUASUAN_RATES;
+      var card = document.getElementById('ratesCard');
+      if (!rates || !card) return;
+
+      var renderRows = function(el, items) {
+        if (!el) return;
+        var html = '';
+        items.forEach(function(it) {
+          html += '<div class="rates__row"><span class="rates__row-term">' + it.term + '</span>' +
+            '<span class="rates__row-rate">' + it.rate.toFixed(2) + '%</span></div>';
+        });
+        el.innerHTML = html;
+      };
+      renderRows(document.getElementById('ratesBondRows'), rates.bonds.items);
+      renderRows(document.getElementById('ratesDepositRows'), rates.deposits.items);
+
+      var bondNote = document.getElementById('ratesBondNote');
+      var depNote = document.getElementById('ratesDepositNote');
+      var updatedEl = document.getElementById('ratesUpdated');
+      var sourceEl = document.getElementById('ratesSource');
+      if (bondNote) bondNote.textContent = rates.bonds.note || '';
+      if (depNote) depNote.textContent = rates.deposits.note || '';
+      if (updatedEl) updatedEl.textContent = '数据截至 ' + rates.updatedAt;
+      if (sourceEl) sourceEl.textContent = '来源：' + rates.source + ' · 每周自动更新';
+
+      // rateSelect 插入真实利率档位（首项 0% 与末两项假设情景保留）
+      var sel = document.getElementById('rateSelect');
+      if (!sel) return;
+      var html = '<option value="0">0% — 纯线性（默认）</option>';
+      rates.bonds.items.forEach(function(it) {
+        html += '<option value="' + it.rate + '">' + it.rate.toFixed(2) + '% — 储蓄国债' + it.term + '</option>';
+      });
+      var dep3 = null;
+      rates.deposits.items.forEach(function(it) { if (it.term === '3年') dep3 = it; });
+      if (dep3) html += '<option value="' + dep3.rate + '">' + dep3.rate.toFixed(2) + '% — 定存3年（大行挂牌）</option>';
+      html += '<option value="3">3% — 假设：稳健理财</option>';
+      html += '<option value="5">5% — 假设：进取理财</option>';
+      sel.innerHTML = html;
+    }
+
+    // ========== v3.16 本地数据文件（File System Access API，Chrome/Edge） ==========
+    // localStorage 为主存储；绑定后文件为自动同步镜像，payload 格式同「导出数据」，可经「导入数据」恢复
+    function DataFileApp() {
+      this.dbName = 'huasuan';
+      this.storeName = 'handles';
+      this.handleKey = 'dataFile';
+      this.handle = null;        // FileSystemFileHandle
+      this.lastSaved = null;     // Date：上次写入文件的时间
+      this.debounceTimer = null;
+      this.init();
+    }
+
+    // Firefox/Safari 无 showSaveFilePicker → fileBar 保持 hidden，整个功能不启用
+    DataFileApp.prototype.init = function() {
+      if (!window.showSaveFilePicker || !window.indexedDB) return;
+      if (!document.getElementById('fileBar')) return;
+      document.getElementById('fileBar').hidden = false;
+      var self = this;
+      document.getElementById('bindFileBtn').addEventListener('click', function() { self.bind(); });
+      document.getElementById('openFileBtn').addEventListener('click', function() { self.openFile(); });
+      document.getElementById('reauthFileBtn').addEventListener('click', function() { self.reauth(); });
+      document.getElementById('unbindFileBtn').addEventListener('click', function() { self.unbind(); });
+      this.restore();
+    };
+
+    // 启动时从 IndexedDB 恢复句柄；权限失效（浏览器重启后）转 reauth 态
+    DataFileApp.prototype.restore = function() {
+      var self = this;
+      this.getIDB().then(function(handle) {
+        if (!handle) { self.render('unbound'); return; }
+        self.handle = handle;
+        return handle.queryPermission({ mode: 'readwrite' }).then(function(perm) {
+          if (perm !== 'granted') { self.render('reauth'); return; }
+          // lastSaved 初始值取文件上次写入时间（lastModified）
+          return handle.getFile().then(function(file) {
+            self.lastSaved = file.size > 0 ? new Date(file.lastModified) : null;
+            self.render('bound');
+          });
+        });
+      }).catch(function(e) { console.warn('数据文件句柄恢复失败：', e); });
+    };
+
+    DataFileApp.prototype.bind = function() {
+      var self = this;
+      window.showSaveFilePicker({
+        suggestedName: 'huasuan-data.json',
+        types: [{ description: 'JSON 数据文件', accept: { 'application/json': ['.json'] } }]
+      }).then(function(handle) {
+        self.handle = handle;
+        return self.putIDB(handle).then(function() {
+          return self.writeNow();
+        });
+      }).catch(function(e) {
+        if (e && e.name === 'AbortError') return; // 用户取消选择
+        console.error('绑定数据文件失败：', e);
+      });
+    };
+
+    DataFileApp.prototype.writeNow = function() {
+      var self = this;
+      if (!this.handle) return Promise.resolve();
+      var payload = {
+        app: 'huasuan',
+        version: '3.16',
+        exportedAt: new Date().toISOString(),
+        cashflow: window.cashflowApp ? window.cashflowApp.state : null,
+        plans: window.plansApp ? window.plansApp.state : null
+      };
+      return this.handle.createWritable().then(function(writable) {
+        return writable.write(JSON.stringify(payload, null, 2)).then(function() {
+          return writable.close();
+        });
+      }).then(function() {
+        self.lastSaved = new Date();
+        self.render('bound');
+      }).catch(function(e) {
+        if (e && e.name === 'NotAllowedError') { self.render('reauth'); return; }
+        console.warn('数据文件写入失败：', e); // 文件被占用等：静默，下次保存重试
+      });
+    };
+
+    // 各 App saveState 后的钩子入口（debounce 800ms；未绑定时无操作）
+    DataFileApp.prototype.onStateSaved = function() {
+      if (!this.handle) return;
+      clearTimeout(this.debounceTimer);
+      var self = this;
+      this.debounceTimer = setTimeout(function() { self.writeNow(); }, 800);
+    };
+
+    DataFileApp.prototype.reauth = function() {
+      var self = this;
+      if (!this.handle) return;
+      this.handle.requestPermission({ mode: 'readwrite' }).then(function(perm) {
+        if (perm === 'granted') return self.writeNow();
+      }).catch(function(e) { console.warn('数据文件重新授权失败：', e); });
+    };
+
+    // 浏览器无法调起资源管理器定位文件夹 → 新标签页查看文件当前内容
+    DataFileApp.prototype.openFile = function() {
+      if (!this.handle) return;
+      this.handle.getFile().then(function(file) {
+        var url = URL.createObjectURL(file);
+        window.open(url, '_blank');
+        setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+      }).catch(function(e) { console.warn('打开数据文件失败：', e); });
+    };
+
+    DataFileApp.prototype.unbind = function() {
+      this.handle = null;
+      this.lastSaved = null;
+      clearTimeout(this.debounceTimer);
+      this.delIDB().catch(function(e) { console.warn('解除绑定失败：', e); });
+      this.render('unbound');
+    };
+
+    // 三态渲染：unbound（未绑定）/ bound（已绑定）/ reauth（权限失效）
+    DataFileApp.prototype.render = function(state) {
+      var statusEl = document.getElementById('fileStatus');
+      if (!statusEl) return;
+      if (!state) state = this.handle ? 'bound' : 'unbound';
+      document.getElementById('bindFileBtn').hidden = state !== 'unbound';
+      document.getElementById('openFileBtn').hidden = state !== 'bound';
+      document.getElementById('reauthFileBtn').hidden = state !== 'reauth';
+      document.getElementById('unbindFileBtn').hidden = state === 'unbound';
+      if (state === 'unbound') {
+        statusEl.innerHTML = '未绑定 — 数据仅存于浏览器 localStorage';
+      } else if (state === 'reauth') {
+        statusEl.innerHTML = '文件授权已失效（浏览器重启后需重新确认）— 点击「重新授权」恢复自动同步';
+      } else {
+        var name = (this.handle && this.handle.name) ? this.handle.name : 'huasuan-data.json';
+        var t = this.lastSaved ? this.fmtTime(this.lastSaved) : '刚刚';
+        statusEl.innerHTML = '数据文件保存至本地：<b>' + this.escape(name) + '</b> · 上次保存 ' + t;
+      }
+    };
+
+    DataFileApp.prototype.fmtTime = function(d) {
+      var p = function(x) { return String(x).padStart(2, '0'); };
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    };
+
+    DataFileApp.prototype.escape = function(s) {
+      return String(s).replace(/[&<>"']/g, function(c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    };
+
+    // ---- IndexedDB 句柄存取（库名 huasuan / store handles / key dataFile）----
+    DataFileApp.prototype.openDB = function() {
+      var self = this;
+      return new Promise(function(resolve, reject) {
+        var req = indexedDB.open(self.dbName, 1);
+        req.onupgradeneeded = function() { req.result.createObjectStore(self.storeName); };
+        req.onsuccess = function() { resolve(req.result); };
+        req.onerror = function() { reject(req.error); };
+      });
+    };
+
+    DataFileApp.prototype.tx = function(mode, op) {
+      var self = this;
+      return this.openDB().then(function(db) {
+        return new Promise(function(resolve, reject) {
+          var tx = db.transaction(self.storeName, mode);
+          var req = op(tx.objectStore(self.storeName));
+          tx.oncomplete = function() { resolve(req ? req.result : undefined); };
+          tx.onerror = function() { reject(tx.error); };
+        });
+      });
+    };
+
+    DataFileApp.prototype.getIDB = function() {
+      var key = this.handleKey;
+      return this.tx('readonly', function(s) { return s.get(key); });
+    };
+    DataFileApp.prototype.putIDB = function(handle) {
+      var key = this.handleKey;
+      return this.tx('readwrite', function(s) { return s.put(handle, key); });
+    };
+    DataFileApp.prototype.delIDB = function() {
+      var key = this.handleKey;
+      return this.tx('readwrite', function(s) { return s.delete(key); });
+    };
+
+    // ========== 启动 ==========
+    document.addEventListener('DOMContentLoaded', function() {
+      // v3.11：示例按钮仅测试可见 — URL 带 ?dev=1 时显示（见 doc/plans/task_plan.md 执行说明）
+      if (new URLSearchParams(location.search).get('dev') === '1') {
+        ['loadSampleBtn', 'loadMultiLoanBtn'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.hidden = false;
+        });
+      }
+
+      // v3.12：利率参考卡渲染 + rateSelect 真实利率档位（先于各 App 初始化）
+      initRatesCard();
+
+      // v3.16：saveState 钩子 — 实例化前打补丁，之后每次保存状态都同步到绑定的数据文件
+      ['CashflowApp', 'PlansApp'].forEach(function(name) {
+        var orig = window[name].prototype.saveState;
+        window[name].prototype.saveState = function() {
+          var r = orig.call(this);
+          if (window.dataFileApp) window.dataFileApp.onStateSaved();
+          return r;
+        };
+      });
+
+      window.cashflowApp = new CashflowApp();
+      window.plansApp = new PlansApp();
+      window.plansApp.render(); // 现金流初始化时 plansApp 尚未创建，这里补一次联动
+      window.retireApp = new RetireApp();
+      window.retireApp.calculate(); // 现金流 calculate 时 retireApp 尚未创建，这里补算一次
+
+      // v3.16：本地数据文件（内部自检 showSaveFilePicker，不支持时 fileBar 保持 hidden）
+      window.dataFileApp = new DataFileApp();
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.fade-up').forEach(function(el) { observer.observe(el); });
+    });
   </script>
 </body>
 </html>

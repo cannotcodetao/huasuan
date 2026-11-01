@@ -3,3 +3,9 @@ doc/
 
 # 原型草稿
 prototype.html
+
+# 部署产物（由 .github/workflows/deploy.yml 在 CI 里重新生成）
+_release/
+
+# 网页分享包临时目录
+.trae-html-share-packages/
