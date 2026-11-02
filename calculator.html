@@ -84,7 +84,6 @@
       <ul class="nav__menu">
         <li><a href="index.html">首页</a></li>
         <li><a href="calculator.html" class="active">消费决策</a></li>
-        <li><a href="methodology.html">方法论</a></li>
       </ul>
     </div>
   </nav>
@@ -113,33 +112,6 @@
       </div>
 
       <div class="calc-cols fade-up" id="formSection"></div>
-
-      <!-- v3.13 还款方式对比：等额本息 vs 等额本金（默认折叠，示例：借款 1 万 · 年利率 24% · 12 期） -->
-      <details class="repay fade-up" id="repayCompare">
-        <summary class="repay__summary">
-          <span class="repay__summary-main">还款方式对比：等额本息 vs 等额本金</span>
-          <span class="repay__summary-sub">示例：借款 1 万 · 年利率 24% · 12 期</span>
-        </summary>
-        <div class="repay__body">
-          <div class="repay__notes">
-            <div class="repay__note">
-              <h4>等额本息<span>月供固定</span></h4>
-              <p>每月月供相同 = P·r·(1+r)<sup>n</sup> / ((1+r)<sup>n</sup>−1)。前期利息占比高、本金还得慢，资金占用时间长 → 同利率下总利息更多（本例 1,347.15 元）。</p>
-            </div>
-            <div class="repay__note">
-              <h4>等额本金<span>月供递减</span></h4>
-              <p>每月固定还本 P/n，利息 = 剩余本金 × 月利率 → 月供逐月递减，本金还得快 → 总利息更少（本例 1,300.00 元），但前期月供更重。</p>
-            </div>
-          </div>
-          <p class="repay__hint">两种方式首期利息相同（都是 10,000 × 2% = 200.00 元），第 2 期起等额本金利息更少；等额本金「前置」的是月供而非利息。括号内为<b>整笔月供等价年化</b>：保持借款 1 万、12 期不变，按等额本息月供要达到该期等额本金的月供水平，所需的年化利率 —— 第 1 期 1,033.33 元的月供相当于等额本息年化 ≈41.7% 的月供水平，第 12 期 850.00 元仅 ≈3.7%。两法的真实资金成本（IRR）都等于名义利率 24%，括号展示的是前期月供负担，不是成本差异。</p>
-          <div class="repay__table-wrap">
-            <table class="repay__table" id="repayTable"></table>
-          </div>
-          <p class="repay__footnote">金额四舍五入到分；合计行按未舍入精确值计算（等额本息月供精确值 945.5960 元）。</p>
-        </div>
-      </details>
-
-      <div class="calc-detail fade-up" id="resultDetail"></div>
 
       <button class="btn btn--ghost fade-up" style="margin-top:var(--space-lg);width:100%;justify-content:center;" onclick="resetForm()">重置参数</button>
     </div>
@@ -194,57 +166,6 @@
       updateTabs();
       renderForm();
       calculate();
-      buildRepayTable();
-    }
-
-    // v3.13：还款方式对比表（固定示例：借款 1 万 · 年利率 24% · 12 期）
-    function buildRepayTable() {
-      const table = document.getElementById('repayTable');
-      if (!table) return;
-      const P = 10000, r = 0.24 / 12, n = 12;
-      const fmt2 = v => v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const annuity = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-
-      // 整笔月供等价年化：同本金同期限，等额本息月供达到 target 时的名义年化（月利率×12），二分法
-      const equivAnnual = target => {
-        let lo = 0, hi = 0.05;
-        for (let i = 0; i < 60; i++) {
-          const mid = (lo + hi) / 2;
-          const m = P * mid * Math.pow(1 + mid, n) / (Math.pow(1 + mid, n) - 1);
-          if (m < target) lo = mid; else hi = mid;
-        }
-        return (lo + hi) / 2 * 12;
-      };
-
-      const monthlyPrincipal = P / n;
-      let remainEq = P;
-      let totPrPay = 0, totPrInt = 0, totEqPay = 0, totEqInt = 0;
-      let rows = '';
-      for (let k = 1; k <= n; k++) {
-        const prInt = (P - (k - 1) * monthlyPrincipal) * r;
-        const prPay = monthlyPrincipal + prInt;
-        const eqInt = remainEq * r;
-        const eqPrincipal = annuity - eqInt;
-        remainEq -= eqPrincipal;
-        totPrPay += prPay; totPrInt += prInt; totEqPay += annuity; totEqInt += eqInt;
-        rows += '<tr><td>' + k + '</td>'
-          + '<td>' + fmt2(prPay) + '</td>'
-          + '<td>' + fmt2(monthlyPrincipal) + '</td>'
-          + '<td>' + fmt2(prInt) + '<span class="repay__eq">（' + (equivAnnual(prPay) * 100).toFixed(1) + '%）</span></td>'
-          + '<td>' + fmt2(annuity) + '</td>'
-          + '<td>' + fmt2(eqPrincipal) + '</td>'
-          + '<td>' + fmt2(eqInt) + '</td></tr>';
-      }
-      table.innerHTML = '<thead>'
-        + '<tr><th rowspan="2">期数</th>'
-        + '<th colspan="3" class="repay__group repay__group--linear">等额本金 · 月供递减</th>'
-        + '<th colspan="3" class="repay__group repay__group--annuity">等额本息 · 月供固定</th></tr>'
-        + '<tr class="repay__subhead"><th>月供</th><th>本金</th><th>利息（括号=等价年化）</th><th>月供</th><th>本金</th><th>利息</th></tr>'
-        + '</thead><tbody>' + rows
-        + '<tr class="repay__total"><td>合计</td>'
-        + '<td>' + fmt2(totPrPay) + '</td><td>' + fmt2(P) + '</td><td>' + fmt2(totPrInt) + '</td>'
-        + '<td>' + fmt2(totEqPay) + '</td><td>' + fmt2(P) + '</td><td>' + fmt2(totEqInt) + '</td></tr>'
-        + '</tbody>';
     }
 
     function updateTabs() {
@@ -462,7 +383,7 @@
 
     function calculate() {
       const cat = categories[currentCategory];
-      let result = 0, label = '', unit = '', detail = '', decimals = 0;
+      let result = 0, label = '', unit = '', decimals = 0;
       let subline = '';
 
       if (cat.templateType === 'breakEven') {
@@ -490,14 +411,6 @@
             (currentValues.hasLoan ? ` · 贷款利息 <strong>¥${fmt(loanInterest)}</strong>` : '') +
             (analogy ? ` · ${analogy}` : '');
 
-          detail =
-            detailItem('年折旧', '¥' + fmt(depreciation)) +
-            detailItem('年保险', '¥' + fmt(currentValues.annualInsurance)) +
-            detailItem('年油费', '¥' + fmt(currentValues.annualFuel)) +
-            detailItem('年保养', '¥' + fmt(currentValues.annualMaintenance)) +
-            detailItem('年停车', '¥' + fmt(currentValues.monthlyParking * 12)) +
-            (currentValues.hasLoan ? detailItem('年贷款利息', '¥' + fmt(loanInterest)) : '') +
-            detailItem('年总成本', '¥' + fmt(annualCost), true);
         } else if (currentCategory === 'house') {
           const depreciation = currentValues.useYears > 0
             ? currentValues.price / currentValues.useYears : 0;
@@ -519,15 +432,6 @@
           subline = `购房总价 <strong>¥${fmt(currentValues.price)}</strong> · ` +
             `年持有+利息 <strong>¥${fmt(totalAnnualCost)}</strong> · ` +
             `盈亏平衡 <strong>${Math.round(beMonths)}</strong> 个月`;
-          detail =
-            detailItem('购房总价', '¥' + fmt(currentValues.price)) +
-            detailItem('年折旧', '¥' + fmt(depreciation)) +
-            detailItem('年保险', '¥' + fmt(currentValues.annualInsurance)) +
-            detailItem('年物业费', '¥' + fmt(currentValues.annualPropertyFee)) +
-            detailItem('年持有成本', '¥' + fmt(ownershipAnnual)) +
-            (currentValues.hasLoan ? detailItem('年贷款利息', '¥' + fmt(loanInterestAnnual)) : '') +
-            detailItem('月租金', '¥' + fmt(currentValues.altUnitPrice)) +
-            detailItem('盈亏平衡', `${Math.round(beMonths)} 个月（约 ${beYears.toFixed(1)} 年）`, true);
 
           // 同步"年折旧"的派生字段显示（价格/年限变动时实时更新）
           const depLabel = document.getElementById('annualDepreciationLabel');
@@ -544,25 +448,13 @@
         label = '相当于每年省下';
         unit = '元';
         subline = `日节省 <strong>¥${fmt(dailySavings)}</strong> · 年节省 <strong>¥${fmt(annualSavings)}</strong>`;
-        detail =
-          detailItem('做饭日成本', '¥' + fmt(currentValues.price)) +
-          detailItem('外食毛利率', currentValues.margin + '%') +
-          detailItem('外食日成本', '¥' + fmt(eatOutDailyCost)) +
-          detailItem('日节省', '¥' + fmt(dailySavings)) +
-          detailItem('年节省', '¥' + fmt(annualSavings), true);
       }
-      displayResult(result, label, unit, detail, decimals, subline);
+      displayResult(result, label, unit, decimals, subline);
     }
 
-    function detailItem(k, v, isTotal) {
-      return `<div class="calc-detail__item${isTotal ? ' calc-detail__item--total' : ''}">` +
-        `<span class="k">${k}</span><span class="v">${v}</span></div>`;
-    }
-
-    function displayResult(value, label, unit, detail, decimals, subline) {
+    function displayResult(value, label, unit, decimals, subline) {
       document.getElementById('resultLabel').textContent = label;
       document.getElementById('resultUnit').textContent = unit;
-      document.getElementById('resultDetail').innerHTML = detail;
       document.getElementById('resultSubline').innerHTML = subline;
 
       const target = document.getElementById('resultNumber');

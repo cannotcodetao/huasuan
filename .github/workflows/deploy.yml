@@ -1,0 +1,139 @@
+name: Deploy Subsite
+
+# ────────────────────────────────────────────────────────────────
+# huasuan（划算）子站部署
+#
+# 由 my-sites/_templates/deploy-subsite.yml 定制：
+#   · 类型 A：纯静态多页，无构建工具，根目录即站点
+#   · 分支：主分支为 main（仓库默认），master 保留为别名，两个都触发
+#   · 备案页脚：源文件里没有，由 .github/scripts/inject_beian.py 在产物中注入
+# ────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+# 同一子站串行部署，避免两个 run 同时切软链接、同时 cleanup
+concurrency:
+  group: deploy-huasuan
+  cancel-in-progress: false
+
+env:
+  SITE_NAME: huasuan
+  SITE_ROOT: /www/wwwroot/cannotcode.cn
+  RELEASES_ROOT: /www/releases
+  SERVER_USER: root
+  KEEP_RELEASES: 5
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 构建段：纯静态，cp 出产物 ──────────────────────────────
+      - name: Build
+        run: |
+          set -e
+          rm -rf _release && mkdir -p _release
+
+          # 根目录即站点：拷全部 html 与 assets
+          # prototype.html 在 .gitignore 里，CI 检出本就拿不到；
+          # 本地跑同一段脚本时它存在，所以显式删一次保证两边产出一致
+          shopt -s nullglob
+          cp -a assets ./*.html _release/
+          rm -f _release/prototype.html
+
+          # 备案页脚：只在产物里注入，源码不含
+          python3 .github/scripts/inject_beian.py _release
+
+          # ── 产物验收（不通过就不上传）─────────────────────────
+          test -f _release/index.html
+          SIZE=$(wc -c < _release/index.html | tr -d ' ')
+          PAGES=$(ls _release/*.html | wc -l | tr -d ' ')
+          FILES=$(find _release -type f | wc -l | tr -d ' ')
+          echo "index.html ${SIZE}B · ${PAGES} 页 · ${FILES} 文件"
+          [ "$SIZE" -gt 1000 ] || { echo "❌ index.html 仅 ${SIZE}B"; exit 1; }
+
+          # base 前缀自检：子站必须用相对路径，出现 /assets/ 会去主站根目录找
+          if grep -qE '(src|href)="/assets/' _release/index.html; then
+            echo "❌ 引用了 /assets/ 而非相对路径"; exit 1
+          fi
+
+          # 备案：每个页面两个编号各 1 次
+          MISS=0
+          for f in _release/*.html; do
+            a=$(grep -c '粤ICP备2026107109号-1' "$f" || true)
+            b=$(grep -c '浙公网安备33019202003186号' "$f" || true)
+            [ "$a" = "1" ] && [ "$b" = "1" ] || { echo "❌ 备案缺失: $f (ICP=$a 公安=$b)"; MISS=1; }
+          done
+          [ "$MISS" = "0" ] || exit 1
+          echo "✅ 备案页脚 ${PAGES}/${PAGES} 页齐备"
+
+      - name: Resolve release name (UTC)
+        id: vars
+        run: |
+          # 目录名格式 YYYYMMDD-HHMMSS-RUN，字典序 == 时间序，cleanup 依赖此约定
+          echo "release=${SITE_NAME}/$(date -u +%Y%m%d-%H%M%S)-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ env.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            mkdir -p "${{ env.RELEASES_ROOT }}/${{ steps.vars.outputs.release }}"
+            echo "✅ 已创建 ${{ env.RELEASES_ROOT }}/${{ steps.vars.outputs.release }}"
+
+      - name: Rsync to release directory
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          # --chown 必须有：runner 文件属主是 uid 1001，rsync -a 按数字 ID 保留，
+          # 服务器上 uid 1001 = lighthouse，不加就会把线上文件全变成 lighthouse 所有
+          switches: -avz --delete --chown=www:www --exclude=.git --exclude=.DS_Store
+          path: _release/
+          remote_path: ${{ env.RELEASES_ROOT }}/${{ steps.vars.outputs.release }}/
+          remote_host: ${{ secrets.SERVER_HOST }}
+          remote_user: ${{ env.SERVER_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Switch symlink (atomic) and cleanup
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ env.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            TARGET="${{ env.RELEASES_ROOT }}/${{ steps.vars.outputs.release }}"
+            LINK="${{ env.SITE_ROOT }}/${{ env.SITE_NAME }}"
+
+            # 【关键】若目标是实体目录，ln -sfn 会在目录内部创建链接而非替换它，
+            # 导致旧内容继续对外服务且看似部署成功。必须先移走实体目录。
+            if [ -d "$LINK" ] && [ ! -L "$LINK" ]; then
+              LEGACY="${LINK}.legacy.$(date -u +%Y%m%d%H%M%S)"
+              mv "$LINK" "$LEGACY"
+              echo "⚠️ 检测到实体目录，已移至 $LEGACY（确认无误后可删除）"
+            fi
+
+            # 先建临时链接再 mv，缩短空窗期
+            # 【关键】必须 mv -Tf：$LINK 是「指向目录的符号链接」，不带 -T 的 mv
+            # 会钻进该目录，把 .new 挪到在线版本内部，链接本身指向不变 ——
+            # 表现为「部署报告成功但线上还是旧版本」。2026-10-22 实测踩到。
+            ln -sfn "$TARGET" "${LINK}.new"
+            mv -Tf "${LINK}.new" "$LINK"
+
+            # 不信任上一条命令的退出码，断言指向已改变
+            [ "$(readlink "$LINK")" = "$TARGET" ] || {
+              echo "❌ 软链接切换失败：$LINK -> $(readlink "$LINK")，期望 $TARGET"; exit 1; }
+
+            echo "✅ 已切换 $LINK -> $(readlink "$LINK")"
+            echo "--- 线上入口自检 ---"
+            test -f "$LINK/index.html" || { echo "❌ $LINK/index.html 不存在"; exit 1; }
+            head -c 200 "$LINK/index.html" | tr -d '\0' | head -3
+
+            /www/scripts/cleanup.sh "${{ env.SITE_NAME }}" "${{ env.KEEP_RELEASES }}"

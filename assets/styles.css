@@ -419,34 +419,7 @@ img { max-width: 100%; display: block; }
   outline: none;
   border-color: var(--color-border);
   box-shadow: none;
-}
-
-/* 全宽明细（横排） */
-.calc-detail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-xl);
-  margin-top: var(--space-xl);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-md);
-}
-.calc-detail__item {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2xs);
-  font-size: 14px;
-}
-.calc-detail__item .k { color: var(--color-text-muted); }
-.calc-detail__item .v {
-  font-family: var(--font-mono);
-  color: var(--color-text);
-}
-.calc-detail__item--total .v {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.category-tabs {
+}.category-tabs {
   display: flex;
   gap: var(--space-xs);
   margin-bottom: var(--space-xl);
@@ -586,165 +559,7 @@ img { max-width: 100%; display: block; }
   font-size: 13px;
   color: var(--color-text-muted);
 }
-.loan-toggle--on .loan-toggle__text { color: var(--color-primary); font-weight: 500; }
-
-/* ========== 还款方式对比 (v3.13) ========== */
-.repay {
-  margin-top: var(--space-xl);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-}
-.repay__summary {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  transition: background 200ms var(--ease-move);
-}
-.repay__summary::-webkit-details-marker { display: none; }
-.repay__summary:hover { background: var(--color-bg); }
-.repay__summary::after {
-  content: '+';
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 20px;
-  line-height: 1;
-  color: var(--color-text-muted);
-  transition: transform 200ms var(--ease-move);
-}
-.repay[open] > .repay__summary::after { content: '−'; }
-.repay__summary-main {
-  font-family: var(--font-serif-cn);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-.repay__summary-sub {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-.repay__body { padding: 0 var(--space-lg) var(--space-lg); }
-.repay__notes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
-}
-.repay__note {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-}
-.repay__note h4 {
-  font-family: var(--font-serif-cn);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: var(--space-2xs);
-}
-.repay__note h4 span {
-  font-family: var(--font-sans-en);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  margin-left: var(--space-xs);
-  font-weight: 500;
-  color: var(--color-secondary);
-}
-.repay__note p {
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--color-text-muted);
-}
-.repay__hint {
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-md);
-}
-.repay__hint b { color: var(--color-primary); font-weight: 500; }
-.repay__table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-.repay__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  white-space: nowrap;
-}
-.repay__table th {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  background: var(--color-bg);
-  padding: var(--space-xs) var(--space-sm);
-  border-bottom: 1px solid var(--color-border);
-  text-align: right;
-}
-.repay__table th[rowspan] { vertical-align: bottom; }
-/* 分组表头（还款方式名称）：跨列居中 + 顶部色条区分两种方式（选择器需覆盖 .repay__table th） */
-.repay__table .repay__group {
-  font-family: var(--font-serif-cn);
-  font-size: 13.5px;
-  font-weight: 600;
-  text-align: center;
-  padding-top: var(--space-sm);
-  padding-bottom: var(--space-2xs);
-}
-.repay__table .repay__group--linear {
-  color: var(--color-primary);
-  box-shadow: inset 0 3px 0 var(--color-primary);
-}
-.repay__table .repay__group--annuity {
-  color: #8A6A33;
-  box-shadow: inset 0 3px 0 var(--color-secondary);
-  border-left: 1px solid var(--color-border);
-}
-.repay__subhead th {
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  padding-top: var(--space-2xs);
-}
-.repay__subhead th:nth-child(4) { border-left: 1px solid var(--color-border); }
-.repay__table td {
-  font-family: var(--font-mono);
-  padding: var(--space-2xs) var(--space-sm);
-  text-align: right;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text);
-}
-.repay__table tbody tr:nth-child(even):not(.repay__total) td { background: var(--color-bg); }
-/* 月供列（第 2/5 列）：加粗突出 + 左侧组间分隔线 */
-.repay__table td:nth-child(2),
-.repay__table td:nth-child(5) {
-  font-weight: 600;
-  border-left: 1px solid var(--color-border);
-}
-.repay__table tbody tr:last-child td { border-bottom: none; }
-.repay__table td:first-child,
-.repay__table th:first-child { text-align: center; font-family: var(--font-sans-cn); }
-.repay__eq { color: var(--color-secondary); }
-.repay__total td {
-  font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-bg);
-  border-top: 2px solid var(--color-text);
-}
-.repay__footnote {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-top: var(--space-xs);
-}
-
-/* ========== Methodology Page ========== */
+.loan-toggle--on .loan-toggle__text { color: var(--color-primary); font-weight: 500; }/* ========== Methodology Page ========== */
 .method-content {
   max-width: 760px;
   margin: 0 auto;
@@ -835,9 +650,6 @@ img { max-width: 100%; display: block; }
   .value-grid {
     grid-template-columns: 1fr;
   }
-  .repay__notes { grid-template-columns: 1fr; }
-  .repay__body { padding: 0 var(--space-md) var(--space-md); }
-  .repay__summary { padding: var(--space-sm) var(--space-md); }
   .nav__inner {
     flex-wrap: wrap;
     height: auto;
