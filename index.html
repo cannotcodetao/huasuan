@@ -560,6 +560,29 @@
       max-width: 100%;
     }
 
+    /* 算式参数摘要：单独一条栏，把 huasuan_freedom_v1 里存的值摊开，不用翻 localStorage。
+       注意别用固定 flex-basis——≤1024px 时 .cf__databar 会转成 column，basis 会被当成高度 */
+    .cf__databar--formula { margin-top: var(--space-xs); }
+    .cf__databar-formula {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--color-text-muted);
+      padding: 6px 10px;
+      background: #F8F7F3;
+      border-radius: var(--radius-sm);
+      white-space: normal;
+      overflow-wrap: anywhere;
+      max-width: 100%;
+    }
+    .cf__databar-formula b {
+      color: var(--color-text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
     /* v3.16：本地数据文件条（File System Access API；不支持时 hidden） */
     .cf__databar--file { margin-top: var(--space-xs); }
     .cf__file-status {
@@ -572,6 +595,56 @@
       color: var(--color-primary);
       font-weight: 600;
     }
+
+    /* ========== 绑定数据文件确认弹窗（三选一：备份后加载 / 直接加载 / 取消）========== */
+    .dlg[hidden] { display: none !important; }
+    .dlg {
+      position: fixed; inset: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: var(--space-md);
+    }
+    .dlg__mask {
+      position: absolute; inset: 0;
+      background: rgba(38, 34, 28, 0.42);
+      backdrop-filter: blur(2px);
+    }
+    .dlg__panel {
+      position: relative;
+      width: 100%; max-width: 460px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 18px 48px rgba(38, 34, 28, 0.18);
+      padding: var(--space-lg);
+    }
+    .dlg__title {
+      font-family: var(--font-serif-cn); font-size: 19px; font-weight: 500;
+      color: var(--color-text); margin: 0 0 var(--space-sm);
+    }
+    .dlg__text {
+      font-size: 13px; line-height: 1.8; color: var(--color-text-muted);
+      margin: 0 0 var(--space-sm);
+    }
+    .dlg__text b { color: var(--color-text); font-weight: 600; }
+    .dlg__acts {
+      display: flex; flex-wrap: wrap; gap: var(--space-xs);
+      margin-top: var(--space-md);
+    }
+    .dlg__btn {
+      flex: 1 1 auto; padding: 9px 14px;
+      border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      background: var(--color-surface); color: var(--color-text);
+      font-size: 13px; font-family: var(--font-sans-cn);
+      cursor: pointer; transition: all 200ms var(--ease-move);
+    }
+    .dlg__btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .dlg__btn--primary {
+      background: rgba(184, 147, 90, 0.12);
+      border-color: rgba(184, 147, 90, 0.32);
+      color: var(--color-secondary);
+    }
+    .dlg__btn--ghost { color: var(--color-text-muted); }
+    .dlg__btn--ghost:hover { color: var(--color-error); border-color: var(--color-error); }
 
     /* 图表 */
     /* ========== v3.7 子区块：右栏内 section + 2×3 stats 网格（与未来计划同格式） ========== */
@@ -1451,9 +1524,10 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       font-family: var(--font-serif-cn); font-size: 22px; font-weight: 500;
       color: var(--color-text); margin: 6px 0 0; letter-spacing: -.01em;
     }
+    /* 标签与六个数字格各占一行：窄屏不再把格子挤断成两行，桌面与移动排布一致 */
     .cd__row {
-      display: flex; align-items: baseline; justify-content: center;
-      gap: 8px 22px; flex-wrap: wrap; margin-top: var(--space-md);
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--space-sm); margin-top: var(--space-md);
     }
     .cd__label {
       font-family: var(--font-serif-cn); font-size: clamp(15px, 1.4vw, 19px);
@@ -1979,6 +2053,12 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
             <span class="cf__databar-location">localStorage · huasuan_cashflow / huasuan_plans / huasuan_freedom_v1</span>
             <input type="file" id="importFile" accept=".json,application/json" style="display:none">
           </div>
+          <!-- 算式参数摘要：独立一条，不塞进上面的 flex 行。
+               ≤1024px 时 .cf__databar 会变成 column，行内用 flex-basis:100% 会被当成高度，把整条顶出视口 -->
+          <div class="cf__databar cf__databar--formula">
+            <span class="cf__databar-label">算式参数</span>
+            <span class="cf__databar-formula" id="formulaSummary">加载中…</span>
+          </div>
           <!-- v3.16：本地数据文件（File System Access API，Chrome/Edge；不支持时 JS 保持 hidden） -->
           <div class="cf__databar cf__databar--file" id="fileBar" hidden>
             <span class="cf__databar-label">数据文件</span>
@@ -2184,6 +2264,25 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       </div>
     </div>
   </footer>
+
+  <!-- 绑定数据文件确认弹窗：三个出口（备份后加载 / 直接加载 / 取消），不用 confirm()
+       是因为 confirm 只有两键，把「不备份直接加载」放在「取消」上极易误点丢数据 -->
+  <div class="dlg" id="bindDlg" hidden>
+    <div class="dlg__mask" data-act="cancel"></div>
+    <div class="dlg__panel" role="dialog" aria-modal="true" aria-labelledby="bindDlgTitle">
+      <h3 class="dlg__title" id="bindDlgTitle">绑定数据文件</h3>
+      <p class="dlg__text">
+        绑定后会<b>从数据文件读取数据</b>，替换浏览器中当前的现金流、未来计划与算式参数。
+        之后每次改动都会自动同步回这个文件。
+      </p>
+      <p class="dlg__text">是否先把当前数据另存为一份备份？</p>
+      <div class="dlg__acts">
+        <button class="dlg__btn dlg__btn--primary" data-act="backup">先另存为，再加载</button>
+        <button class="dlg__btn" data-act="load">不备份，直接加载</button>
+        <button class="dlg__btn dlg__btn--ghost" data-act="cancel">取消</button>
+      </div>
+    </div>
+  </div>
 
   <script src="assets/rates.js"></script>
   <script>
@@ -2588,7 +2687,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     CashflowApp.prototype.exportData = function() {
       var payload = {
         app: 'huasuan',
-        version: '4.2',
+        version: '4.3',
         exportedAt: new Date().toISOString(),
         cashflow: this.state,
         plans: window.plansApp ? window.plansApp.state : null,
@@ -2607,49 +2706,70 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       URL.revokeObjectURL(url);
     };
 
+    /* 校验备份 payload：合法返回 null，不合法返回原因。
+       「导入数据」与「绑定后加载文件」共用同一套判据，避免两条入口口径不一致 */
+    function payloadProblem(data) {
+      if (!data || typeof data !== 'object' || Array.isArray(data)) return '不是有效的 JSON 对象';
+      if (!data.cashflow || !Array.isArray(data.cashflow.incomes) || !Array.isArray(data.cashflow.expenses)) {
+        return '缺少 cashflow 数据';
+      }
+      if (!data.plans || !Array.isArray(data.plans.plans)) return '缺少 plans 数据';
+      return null;
+    }
+
+    /* 把一份备份 payload 应用到当前页面：现金流 → 未来计划 → 算式参数（三块顺序不能换，
+       算式要读未来计划的总目标）。「导入数据」与「绑定后加载文件」都走这里。
+       opt.silent = true 时不弹「导入成功」 */
+    CashflowApp.prototype.applyPayload = function(data, opt) {
+      var self = this;
+
+      self.state = data.cashflow;
+      // v3.4.1 迁移：导入旧格式（无 isLoan）时按贷款参数自动开启开关
+      self.state.expenses.forEach(function(e) {
+        if (e.category !== 'fixed' && e.isLoan == null) {
+          e.isLoan = (parseFloat(e.totalAmount) > 0 && parseInt(e.totalMonths, 10) > 0);
+        }
+      });
+      self.saveState();
+      self.renderSnapshotBar();
+      self.renderIncomeList();
+      self.renderExpenseList();
+      self.calculate();
+      // 强制重建资产/负债 chip：换了一整份数据，若结构签名恰好相同，
+      // 走「只刷只读数字」的分支会把旧的手填名称和金额留在页面上
+      self.renderBalanceSheet(true);
+
+      if (window.plansApp) {
+        window.plansApp.state = { plans: data.plans.plans, sortBy: data.plans.sortBy || 'priority' };
+        window.plansApp.saveState();
+        window.plansApp.updateSortTabs();
+        window.plansApp.render();
+      }
+
+      if (data.formula && window.__FIRE__ && window.__FIRE__.set) {
+        window.__FIRE__.set(data.formula);
+        if (window.cashflowApp) window.cashflowApp.updateCountdown();
+      } else if (window.__FIRE__ && window.__FIRE__.refresh) {
+        // 旧备份（v3.x）没有算式参数 → 保留当前值，但摘要与倒计时仍要跟着新数据刷新
+        window.__FIRE__.refresh();
+      }
+
+      if (!(opt && opt.silent)) alert('导入成功');
+    };
+
     CashflowApp.prototype.importData = function(file) {
       var self = this;
       var reader = new FileReader();
       reader.onload = function() {
         try {
           var data = JSON.parse(reader.result);
-          if (!data || !data.cashflow || !Array.isArray(data.cashflow.incomes) || !Array.isArray(data.cashflow.expenses)) {
-            alert('导入失败：文件格式不正确（缺少 cashflow 数据）');
+          var problem = payloadProblem(data);
+          if (problem) {
+            alert('导入失败：文件格式不正确（' + problem + '）');
             return;
           }
-          if (!data.plans || !Array.isArray(data.plans.plans)) {
-            alert('导入失败：文件格式不正确（缺少 plans 数据）');
-            return;
-          }
-          if (!confirm('导入将覆盖当前现金流和未来计划数据，继续？')) return;
-
-          self.state = data.cashflow;
-          // v3.4.1 迁移：导入旧格式（无 isLoan）时按贷款参数自动开启开关
-          self.state.expenses.forEach(function(e) {
-            if (e.category !== 'fixed' && e.isLoan == null) {
-              e.isLoan = (parseFloat(e.totalAmount) > 0 && parseInt(e.totalMonths, 10) > 0);
-            }
-          });
-          self.saveState();
-          self.renderSnapshotBar();
-          self.renderIncomeList();
-          self.renderExpenseList();
-          self.calculate();
-
-          if (window.plansApp) {
-            window.plansApp.state = { plans: data.plans.plans, sortBy: data.plans.sortBy || 'priority' };
-            window.plansApp.saveState();
-            window.plansApp.updateSortTabs();
-            window.plansApp.render();
-          }
-
-          // 算式参数：旧备份（v3.x）没有这块 → 保留当前值，不重置
-          if (data.formula && window.__FIRE__ && window.__FIRE__.set) {
-            window.__FIRE__.set(data.formula);
-            if (window.cashflowApp) window.cashflowApp.updateCountdown();
-          }
-
-          alert('导入成功');
+          if (!confirm('导入将覆盖当前现金流、未来计划和算式参数，继续？')) return;
+          self.applyPayload(data);
         } catch (err) {
           console.error('[Import] 解析失败', err);
           alert('导入失败：JSON 解析错误');
@@ -4296,19 +4416,82 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       }).catch(function(e) { console.warn('数据文件句柄恢复失败：', e); });
     };
 
+    /* 绑定前的三选一确认，resolve 'backup' | 'load' | 'cancel'。
+       不用 confirm()：它只有两个键，把「不备份直接加载」摆在取消位上极易误点丢数据，
+       也没法回退。这里给三个独立出口，「取消」永远是真的放弃绑定。 */
+    DataFileApp.prototype.askBindMode = function() {
+      var dlg = document.getElementById('bindDlg');
+      if (!dlg) return Promise.resolve('load');
+      return new Promise(function(resolve) {
+        var onClick = function(e) {
+          var btn = e.target.closest ? e.target.closest('[data-act]') : null;
+          if (!btn || !dlg.contains(btn)) return;
+          done(btn.getAttribute('data-act'));
+        };
+        var onKey = function(e) {
+          if (e.key === 'Escape') done('cancel');
+        };
+        function done(mode) {
+          dlg.hidden = true;
+          dlg.removeEventListener('click', onClick);
+          document.removeEventListener('keydown', onKey);
+          resolve(mode);
+        }
+        dlg.addEventListener('click', onClick);
+        document.addEventListener('keydown', onKey);
+        dlg.hidden = false;
+        var first = dlg.querySelector('[data-act="backup"]');
+        if (first) first.focus();
+      });
+    };
+
+    /* 绑定＝「以目标文件为准」：
+         空文件（刚新建）        → 没有可清掉的原内容，直接把当前数据写进去
+         合法备份                → 用文件内容替换浏览器当前数据，然后回写保持两边一致
+         有内容但不是备份/坏JSON → 报错放弃，浏览器数据与文件都不动
+       选「先另存为」时，先导出一份当前数据的备份再让用户选文件。 */
     DataFileApp.prototype.bind = function() {
       var self = this;
-      window.showSaveFilePicker({
-        suggestedName: 'huasuan-data.json',
-        types: [{ description: 'JSON 数据文件', accept: { 'application/json': ['.json'] } }]
-      }).then(function(handle) {
-        self.handle = handle;
-        return self.putIDB(handle).then(function() {
-          return self.writeNow();
+      return this.askBindMode().then(function(mode) {
+        if (!mode || mode === 'cancel') return;
+
+        // 先另存为：直接走「导出数据」，浏览器会存成 huasuan-backup-YYYYMMDD.json
+        if (mode === 'backup' && window.cashflowApp) window.cashflowApp.exportData();
+
+        return window.showSaveFilePicker({
+          suggestedName: 'huasuan-data.json',
+          types: [{ description: 'JSON 数据文件', accept: { 'application/json': ['.json'] } }]
+        }).then(function(handle) {
+          return handle.getFile().then(function(file) {
+            // 刚新建的空文件：没有原内容可清，直接把当前数据写进去
+            if (!file || file.size === 0) {
+              self.handle = handle;
+              return self.putIDB(handle).then(function() { return self.writeNow(); });
+            }
+            return file.text().then(function(text) {
+              var data;
+              try {
+                data = JSON.parse(text);
+              } catch (err) {
+                throw new Error('目标文件不是合法的 JSON，已放弃绑定，浏览器与文件的数据都未改动');
+              }
+              var problem = payloadProblem(data);
+              if (problem) {
+                throw new Error('目标文件不是划算的备份（' + problem + '），已放弃绑定，浏览器与文件的数据都未改动');
+              }
+              // 校验全部通过才替换，避免「绑到一半失败」把两边都搞坏
+              if (window.cashflowApp) window.cashflowApp.applyPayload(data, { silent: true });
+              self.handle = handle;
+              return self.putIDB(handle).then(function() {
+                return self.writeNow();
+              });
+            });
+          });
         });
       }).catch(function(e) {
-        if (e && e.name === 'AbortError') return; // 用户取消选择
+        if (e && e.name === 'AbortError') return; // 用户在文件选择器里点了取消
         console.error('绑定数据文件失败：', e);
+        alert(e && e.message ? '绑定失败：' + e.message : '绑定失败，请重试');
       });
     };
 
@@ -4317,7 +4500,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       if (!this.handle) return Promise.resolve();
       var payload = {
         app: 'huasuan',
-        version: '4.2',
+        version: '4.3',
         exportedAt: new Date().toISOString(),
         cashflow: window.cashflowApp ? window.cashflowApp.state : null,
         plans: window.plansApp ? window.plansApp.state : null,
@@ -4504,6 +4687,10 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
   }
   function save(){
     try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+    /* 绑定数据文件后，算式参数的改动也要即时同步 —— 本 IIFE 不经过 App.saveState，
+       没有这条钩子的话，改乘数/月开销要等现金流或未来计划再保存一次才会写盘，
+       中途关页面就丢。onStateSaved 内部有 800ms debounce，连点也只写一次。 */
+    if(window.dataFileApp && window.dataFileApp.onStateSaved) window.dataFileApp.onStateSaved();
   }
   function $(id){ return document.getElementById(id); }
   function numv(v, d){
@@ -4582,6 +4769,22 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     $("fxMult2").textContent = ok ? fmt(m, Math.abs(m - Math.round(m)) < 0.05 ? 0 : 1) : "—";
     syncField("fNom", numv(S.nominal).toFixed(1));
     syncField("fInf", numv(S.inflation).toFixed(1));
+
+    /* 数据管理区的算式参数摘要：把 huasuan_freedom_v1 里存的值摊开，
+       改任一输入框这里跟着变，排查口径时不用去翻 localStorage */
+    var fsEl = $("formulaSummary");
+    if(fsEl){
+      var wan = function(v, d){ return fmt(numv(v), d === undefined ? 1 : d) + " 万"; };
+      fsEl.innerHTML = '乘数 <b>' + fmt(m, 0) + '</b>' +
+        ' · 月开销 <b>' + fmt(numv(S.X) * 10000, 0) + ' 元</b>' +
+        ' · 每孩 <b>' + wan(S.K) + '</b>' +
+        ' · 小孩 <b>' + numv(S.N) + ' 人</b>' +
+        ' · 健康 <b>' + wan(S.M) + '</b>' +
+        ' · 重大投入 <b>' + wan(S.H) + '</b>' +
+        ' · 名义 <b>' + numv(S.nominal).toFixed(1) + '%</b>' +
+        ' · 通胀 <b>' + numv(S.inflation).toFixed(1) + '%</b>' +
+        ' · 实际 <b>' + (ok ? rr.toFixed(1) + '%' : '—') + '</b>';
+    }
 
     /* 未来计划（只读项）：为 0 时压暗，免得 0.0 抢眼 */
     var pw = plansWan();
