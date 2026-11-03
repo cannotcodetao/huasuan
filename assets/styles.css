@@ -625,6 +625,19 @@ img { max-width: 100%; display: block; }
   font-size: 13px;
   color: var(--color-text-muted);
 }
+/* 免责声明：与首页页脚同一套样式，各页共用 */
+.footer__disc {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  max-width: 820px;
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+}
+.footer__disc b {
+  color: var(--color-text);
+}
 
 /* ========== Motion ========== */
 .fade-up {

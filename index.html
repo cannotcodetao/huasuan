@@ -560,35 +560,45 @@
       max-width: 100%;
     }
 
-    /* 算式参数摘要：单独一条栏，把 huasuan_freedom_v1 里存的值摊开，不用翻 localStorage。
-       注意别用固定 flex-basis——≤1024px 时 .cf__databar 会转成 column，basis 会被当成高度 */
-    .cf__databar--formula { margin-top: var(--space-xs); }
-    .cf__databar-formula {
+    /* 数据文件组：与「数据管理」同处一条栏。
+       display:contents 让这组自身不生成盒子，组内元素直接成为父级 flex 的item，
+       于是两组按钮能排进同一行；[hidden] 要单独提权，否则会被 display:contents 顶掉 */
+    .cf__file-group { display: contents; }
+    .cf__file-group[hidden] { display: none !important; }
+    /* 合并后的数据栏强制单行：绑定前后按钮数量不同（未绑定 1 个 / 已绑定 3 个），
+       若允许换行，绑定后就会断成两行。空间不够时只让末尾的键名提示让位 */
+    .cf__databar--manage { flex-wrap: nowrap; }
+    .cf__databar--manage .cf__databar-btn,
+    .cf__databar--manage .cf__databar-label,
+    .cf__databar--manage .cf__databar-div { flex: 0 0 auto; }
+    /* 绑定状态不参与收缩（时间戳要完整），只在文件名过长时按上限截断；
+       末尾那串 localStorage 键名是可牺牲的，优先让位 */
+    .cf__databar--manage .cf__file-status {
+      flex: 0 0 auto;
+      max-width: 280px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cf__databar--manage .cf__databar-location {
       flex: 1 1 auto;
       min-width: 0;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      line-height: 1.7;
-      color: var(--color-text-muted);
-      padding: 6px 10px;
-      background: #F8F7F3;
-      border-radius: var(--radius-sm);
-      white-space: normal;
-      overflow-wrap: anywhere;
-      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .cf__databar-formula b {
-      color: var(--color-text);
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
+    /* 两组之间的竖分隔线 */
+    .cf__databar-div {
+      width: 1px;
+      align-self: center;
+      height: 18px;
+      margin: 0 2px;
+      background: var(--color-border);
     }
-
-    /* v3.16：本地数据文件条（File System Access API；不支持时 hidden） */
-    .cf__databar--file { margin-top: var(--space-xs); }
     .cf__file-status {
       font-size: 12px;
       color: var(--color-text-muted);
-      margin-right: auto;
     }
     .cf__file-status b {
       font-family: var(--font-mono);
@@ -1290,6 +1300,17 @@
       .cf__databar { flex-direction: column; align-items: stretch; }
       .cf__databar-btn { text-align: center; }
       .cf__databar-location { margin-left: 0; text-align: center; }
+      /* 竖分隔线在纵向排列下转成横线 */
+      .cf__databar-div { width: 100%; height: 1px; margin: 4px 0; }
+      /* 纵向排列时不再强制单行，状态与键名恢复换行，避免省略号裁掉信息 */
+      .cf__databar--manage { flex-wrap: wrap; }
+      .cf__databar--manage .cf__file-status,
+      .cf__databar--manage .cf__databar-location {
+        white-space: normal;
+        overflow: visible;
+        overflow-wrap: anywhere;
+        text-align: center;
+      }
       .plans__toolbar { flex-direction: column; align-items: stretch; }
       .plans__modal { padding: var(--space-lg); }
       /* 底栏：未来计划统计卡改为 1 列堆叠，手机竖屏信息密度优先 */
@@ -1964,6 +1985,31 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
         </div>
       </div>
 
+      <!-- ④ 数据管理 + 数据文件：合并在同一行，紧跟三宫格之下 -->
+      <div class="cf__databar cf__databar--manage fade-up">
+        <span class="cf__databar-label">数据管理</span>
+        <button class="cf__databar-btn" id="exportBtn">导出数据</button>
+        <button class="cf__databar-btn" id="importBtn">导入数据</button>
+        <button class="cf__databar-btn" id="loadSampleBtn" hidden>载入示例</button>
+        <button class="cf__databar-btn cf__databar-btn--accent" id="loadMultiLoanBtn" hidden>载入多贷款示例</button>
+        <button class="cf__databar-btn cf__databar-btn--danger" id="clearAllBtn">清空所有</button>
+
+        <!-- v3.16 本地数据文件（File System Access API，Chrome/Edge）。
+             不支持时整组 hidden；display:contents 不给这组生成盒子，组内按钮直接排进同一行 -->
+        <span class="cf__file-group" id="fileBar" hidden>
+          <span class="cf__databar-div" aria-hidden="true"></span>
+          <span class="cf__databar-label">数据文件</span>
+          <span class="cf__file-status" id="fileStatus">未绑定 — 数据仅存于本地</span>
+          <button class="cf__databar-btn cf__databar-btn--accent" id="bindFileBtn">绑定数据文件</button>
+          <button class="cf__databar-btn" id="openFileBtn" hidden>打开数据文件</button>
+          <button class="cf__databar-btn" id="reauthFileBtn" hidden>重新授权</button>
+          <button class="cf__databar-btn cf__databar-btn--danger" id="unbindFileBtn" hidden>解除绑定</button>
+        </span>
+
+        <span class="cf__databar-location" title="localStorage 键名：huasuan_cashflow / huasuan_plans / huasuan_freedom_v1">huasuan_cashflow / huasuan_plans / huasuan_freedom_v1</span>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+      </div>
+
       <!-- ========== v3.16 中栏：月收入 / 月支出 上下两段全宽，段内项目两列网格 ========== -->
       <!-- 月份导航（v3.6：快照栏精简——删标签和名字，保留 ◀ 月 ▶ + 最后保存时间） -->
       <div class="cf__snapshot">
@@ -2038,35 +2084,6 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
             <div class="dash__rows dash__chips" id="debtRows"></div>
             <button class="dash__add" id="addDebtBtn">+ 添加负债项</button>
             <div class="dash__card-ft" id="debtFoot">—</div>
-          </div>
-        </div>
-
-        <!-- 第 2 行：数据管理栏（v3.3 Phase 16，全宽 100%） -->
-        <div class="lc-grid lc-grid--single">
-          <div class="cf__databar">
-            <span class="cf__databar-label">数据管理</span>
-            <button class="cf__databar-btn" id="exportBtn">导出数据</button>
-            <button class="cf__databar-btn" id="importBtn">导入数据</button>
-            <button class="cf__databar-btn" id="loadSampleBtn" hidden>载入示例</button>
-            <button class="cf__databar-btn cf__databar-btn--accent" id="loadMultiLoanBtn" hidden>载入多贷款示例</button>
-            <button class="cf__databar-btn cf__databar-btn--danger" id="clearAllBtn">清空所有</button>
-            <span class="cf__databar-location">localStorage · huasuan_cashflow / huasuan_plans / huasuan_freedom_v1</span>
-            <input type="file" id="importFile" accept=".json,application/json" style="display:none">
-          </div>
-          <!-- 算式参数摘要：独立一条，不塞进上面的 flex 行。
-               ≤1024px 时 .cf__databar 会变成 column，行内用 flex-basis:100% 会被当成高度，把整条顶出视口 -->
-          <div class="cf__databar cf__databar--formula">
-            <span class="cf__databar-label">算式参数</span>
-            <span class="cf__databar-formula" id="formulaSummary">加载中…</span>
-          </div>
-          <!-- v3.16：本地数据文件（File System Access API，Chrome/Edge；不支持时 JS 保持 hidden） -->
-          <div class="cf__databar cf__databar--file" id="fileBar" hidden>
-            <span class="cf__databar-label">数据文件</span>
-            <span class="cf__file-status" id="fileStatus">未绑定 — 数据仅存于浏览器 localStorage</span>
-            <button class="cf__databar-btn cf__databar-btn--accent" id="bindFileBtn">绑定数据文件</button>
-            <button class="cf__databar-btn" id="openFileBtn" hidden>打开数据文件</button>
-            <button class="cf__databar-btn" id="reauthFileBtn" hidden>重新授权</button>
-            <button class="cf__databar-btn cf__databar-btn--danger" id="unbindFileBtn" hidden>解除绑定</button>
           </div>
         </div>
 
@@ -4563,19 +4580,20 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       document.getElementById('reauthFileBtn').hidden = state !== 'reauth';
       document.getElementById('unbindFileBtn').hidden = state === 'unbound';
       if (state === 'unbound') {
-        statusEl.innerHTML = '未绑定 — 数据仅存于浏览器 localStorage';
+        statusEl.innerHTML = '未绑定 — 数据仅存于本地';
       } else if (state === 'reauth') {
-        statusEl.innerHTML = '文件授权已失效（浏览器重启后需重新确认）— 点击「重新授权」恢复自动同步';
+        statusEl.innerHTML = '授权已失效 — 点「重新授权」恢复同步';
       } else {
         var name = (this.handle && this.handle.name) ? this.handle.name : 'huasuan-data.json';
         var t = this.lastSaved ? this.fmtTime(this.lastSaved) : '刚刚';
-        statusEl.innerHTML = '数据文件保存至本地：<b>' + this.escape(name) + '</b> · 上次保存 ' + t;
+        statusEl.innerHTML = '已保存至 <b>' + this.escape(name) + '</b> · ' + t;
       }
     };
 
+    /* 这一栏空间紧，时间只显示「月-日 时:分」，年份省掉 */
     DataFileApp.prototype.fmtTime = function(d) {
       var p = function(x) { return String(x).padStart(2, '0'); };
-      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+      return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
     };
 
     DataFileApp.prototype.escape = function(s) {
@@ -4769,22 +4787,6 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     $("fxMult2").textContent = ok ? fmt(m, Math.abs(m - Math.round(m)) < 0.05 ? 0 : 1) : "—";
     syncField("fNom", numv(S.nominal).toFixed(1));
     syncField("fInf", numv(S.inflation).toFixed(1));
-
-    /* 数据管理区的算式参数摘要：把 huasuan_freedom_v1 里存的值摊开，
-       改任一输入框这里跟着变，排查口径时不用去翻 localStorage */
-    var fsEl = $("formulaSummary");
-    if(fsEl){
-      var wan = function(v, d){ return fmt(numv(v), d === undefined ? 1 : d) + " 万"; };
-      fsEl.innerHTML = '乘数 <b>' + fmt(m, 0) + '</b>' +
-        ' · 月开销 <b>' + fmt(numv(S.X) * 10000, 0) + ' 元</b>' +
-        ' · 每孩 <b>' + wan(S.K) + '</b>' +
-        ' · 小孩 <b>' + numv(S.N) + ' 人</b>' +
-        ' · 健康 <b>' + wan(S.M) + '</b>' +
-        ' · 重大投入 <b>' + wan(S.H) + '</b>' +
-        ' · 名义 <b>' + numv(S.nominal).toFixed(1) + '%</b>' +
-        ' · 通胀 <b>' + numv(S.inflation).toFixed(1) + '%</b>' +
-        ' · 实际 <b>' + (ok ? rr.toFixed(1) + '%' : '—') + '</b>';
-    }
 
     /* 未来计划（只读项）：为 0 时压暗，免得 0.0 抢眼 */
     var pw = plansWan();
