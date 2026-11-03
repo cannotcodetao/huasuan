@@ -33,6 +33,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ── 凭据自查：新仓库最容易漏这两个 Secret ────────────────────
+      # 缺了不会告诉你「缺 Secret」，而是让 ssh-action 抛一串看不懂的错、
+      # 8 秒内红掉。这里提前拦住并直接给出修复命令。
+      - name: Preflight · 部署凭据
+        env:
+          DEPLOY_HOST: ${{ secrets.SERVER_HOST }}
+          DEPLOY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -eu
+          MISSING=""
+          [ -n "$DEPLOY_HOST" ] || MISSING="$MISSING SERVER_HOST"
+          [ -n "$DEPLOY_KEY" ]  || MISSING="$MISSING SSH_PRIVATE_KEY"
+          if [ -n "$MISSING" ]; then
+            echo "::error::仓库缺少 Secret:$MISSING —— 部署无法连服务器"
+            echo "修复（在仓库根目录执行）："
+            echo "  gh secret set SERVER_HOST     -R ${{ github.repository }} -b \"<服务器IP>\""
+            echo "  gh secret set SSH_PRIVATE_KEY -R ${{ github.repository }} < ~/.ssh/deploy_cannotcode"
+            exit 1
+          fi
+
+          case "$DEPLOY_KEY" in
+            *"BEGIN OPENSSH PRIVATE KEY"*|*"BEGIN RSA PRIVATE KEY"*) : ;;
+            *) echo "::error::SSH_PRIVATE_KEY 不是私钥（应以 BEGIN OPENSSH PRIVATE KEY 开头），检查是否贴成了公钥"; exit 1 ;;
+          esac
+
+          # CRLF 会让 ssh 报 "error in libcrypto"，是这个流程最常见的第二个坑
+          case "$DEPLOY_KEY" in
+            *$'\r'*) echo "::error::SSH_PRIVATE_KEY 含 CRLF；请用纯 LF 的密钥文件重新 gh secret set"; exit 1 ;;
+          esac
+
+          echo "✅ 凭据齐备 · host=${DEPLOY_HOST}"
+
       # ── 构建段：纯静态，cp 出产物 ──────────────────────────────
       - name: Build
         run: |
