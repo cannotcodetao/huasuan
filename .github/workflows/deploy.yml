@@ -10,8 +10,10 @@ name: Deploy Subsite
 # ────────────────────────────────────────────────────────────────
 
 on:
-  push:
-    branches: [main, master]
+  # 【2026-11-04】主发布通道已改为服务器主动拉取（零密钥，见 my-sites/server/site-pull.sh）。
+  # 本 workflow 降级为「手动兜底」：只有显式点运行时才跑，避免 push 时因未配
+  # SERVER_HOST / SSH_PRIVATE_KEY 而红掉、持续发失败通知。
+  # 若将来确实想用 Actions 直推，配好这两个 Secret 后在 Actions 页手动 Run workflow 即可。
   workflow_dispatch:
 
 # 同一子站串行部署，避免两个 run 同时切软链接、同时 cleanup
