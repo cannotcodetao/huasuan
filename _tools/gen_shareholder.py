@@ -116,7 +116,7 @@ def main() -> int:
         page = page.replace(MARK, section)
     else:
         # 二次及以后：原地替换已生成的整块，保证脚本可反复执行
-        pat = re.compile(r"\n[ \t]*<!-- =+ v4\.6 股东回馈.*?\n[ \t]*</script>", re.S)
+        pat = re.compile(r"\n[ \t]*<!-- =+ v4\.\d+ 股东回馈.*?\n[ \t]*</script>", re.S)
         if not pat.search(page):
             raise SystemExit("找不到占位符，也找不到已生成的股东回馈区块")
         page = pat.sub("\n" + section, page, count=1)
@@ -125,34 +125,10 @@ def main() -> int:
     return 0
 
 
-def pick(name: str, code: str, desc: str) -> str:
-    return (f'<div class="sr__pick"><h4>{html.escape(name)} {html.escape(code)}</h4>'
-            f'<p>{html.escape(desc)}</p></div>')
-
-
 def build_section(data: dict, total: int) -> str:
     cols_js = js_cols(COLS)
     data_js = js_rows(data)
 
-    tiers_top = "".join([
-        pick("恒顺醋业", "600305", "100股门槛，约720元入场；礼包电商价约98.9元；可邮寄，无需现场。礼品价值占比约14%-21%。"),
-        pick("仲景食品", "300908", "100股门槛；西洋参/香菇酱礼包；线上申领邮寄，连续多年。礼品价值占比约3%-5%。"),
-        pick("宋城演艺", "300144", "100股门槛，约800元入场；千古情免票+3名家属5折；体验价值高，需现场使用。"),
-        pick("盈新发展", "000620", "门槛极低（约200元）；U盘/酒店抵扣券/开放日；上市30周年活动，可邮寄。"),
-        pick("盖世食品", "835669", "无持股数量要求，全体股东可领；消暑礼盒；2022年以来4次回馈，可邮寄。"),
-    ])
-    tiers_feat = "".join([
-        pick("华大基因", "300676", "肠道健康检测礼盒，健康属性强；需持股满1年，限量先到先得。"),
-        pick("东北制药", "000597", "「栖芳源」化妆品买1得4+9折，医药跨界美妆的差异化回馈。"),
-        pick("周黑鸭", "01458", "游轮晚宴+Venchi巧克力伴手礼，股东大会体验型回馈的代表。"),
-        pick("中钢", "2002", "钛金属冷水瓶（380ml/98g），台股纪念品质感代表，零股可领。"),
-    ])
-    tiers_risk = "".join([
-        pick("贵州茅台", "600519", "2024年2瓶50ml飞天+冰淇淋券→2025年笔记本+笔→2026年仅笔记本+笔，持续缩水。"),
-        pick("洋河股份", "002304", "2025年取消伴手礼酒，改为笔记本+笔，晚宴从圆桌改为自助餐。"),
-        pick("洽洽食品", "002557", "2024年8月有定制礼盒，2026年2月互动易明确回复「暂无」相关活动。"),
-        pick("五粮液", "000858", "股东优惠价被指高于电商平台，折扣权实际价值极低，参与前需比价。"),
-    ])
     tips = [
         "勿为伴手礼而买股票，伴手礼是锦上添花，不是收益来源。峨眉山A宣布股东免票后股价涨停，但随后冲高回落。",
         "算清全成本：买卖佣金（A股最低5元）、印花税、现场参会差旅费、邮寄等待时间成本。",
@@ -165,7 +141,7 @@ def build_section(data: dict, total: int) -> str:
     ]
     tips_html = "".join(f"<li>{html.escape(t)}</li>" for t in tips)
 
-    return f'''  <!-- ========== v4.6 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
+    return f'''  <!-- ========== v4.8 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
   <div class="layout-center srblock">
     <div class="col-head">
       <h2 class="col-head__title">股东回馈</h2>
@@ -210,24 +186,17 @@ def build_section(data: dict, total: int) -> str:
       </div>
     </details>
 
-    <h3 class="sr__sub">性价比最高梯队</h3>
-    <div class="sr__picks">{tiers_top}</div>
+    <div class="sr__foot">
+      <h3 class="sr__foot-title">给普通散户的实操提醒</h3>
+      <ol class="sr__tips">{tips_html}</ol>
 
-    <h3 class="sr__sub">品类最有特色</h3>
-    <div class="sr__picks">{tiers_feat}</div>
-
-    <h3 class="sr__sub">有变化风险的公司</h3>
-    <div class="sr__picks">{tiers_risk}</div>
-
-    <h3 class="sr__sub">给普通散户的实操提醒</h3>
-    <ol class="sr__tips">{tips_html}</ol>
-
-    <p class="sr__meta">
+      <p class="sr__meta">
       数据来源：巨潮资讯、上交所、深交所、港交所披露易、公司公告／公众号、互动易、
       证券时报、中国证券报、上海证券报、新华财经、中时新闻网等公开渠道。
       各条来源见表格「来源」列；✅ 可直接访问 · ⚠️ 需站内搜索 · ❌ 已失效。
       <br>本区块为公开信息整理，数据时点以各条来源的公告日期为准，本页不另行标注「截至今日」。
-    </p>
+      </p>
+    </div>
   </div>
 
   <script>
@@ -251,6 +220,14 @@ def build_section(data: dict, total: int) -> str:
       [["中"], "mid"],
       [["低", "—", "-"], "low"]
     ];
+    /* 「有变化风险」的公司：原来单列三张卡片，现在压缩成名称下方的一行小字，
+       看得见具体原因，又不占版面。键必须是公司名称（表格第 1 列原文） */
+    var RISK = {{
+      "贵州茅台": "礼品连续缩水",
+      "洋河股份": "取消伴手礼酒",
+      "洽洽食品": "已无相关活动",
+      "五粮液": "折扣高于电商"
+    }};
 
     function esc(s) {{
       return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {{
@@ -278,6 +255,12 @@ def build_section(data: dict, total: int) -> str:
       return "<td>" + esc(val) + "</td>";
     }}
 
+    function nameCell(name) {{
+      var risk = RISK[String(name || "").trim()];
+      return '<td class="c-name">' + esc(name) +
+        (risk ? '<span class="sr__risk">⚠ ' + esc(risk) + "</span>" : "") + "</td>";
+    }}
+
     function render(key, tableId) {{
       var cols = COLS[key], rows = DATA[key] || [], tbl = document.getElementById(tableId);
       if (!tbl) return;
@@ -290,7 +273,8 @@ def build_section(data: dict, total: int) -> str:
         h += "<tr>";
         for (var c = 0; c < cols.length; c++) {{
           var v = rows[r][c];
-          if (c === cols.length - 2) {{ h += '<td class="is-rate">' + badge(v) + "</td>"; }}
+          if (c === 0) {{ h += nameCell(v); }}
+          else if (c === cols.length - 2) {{ h += '<td class="is-rate">' + badge(v) + "</td>"; }}
           else {{ h += cellHtml(v, c === cols.length - 1); }}
         }}
         h += "</tr>";

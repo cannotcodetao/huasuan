@@ -1826,7 +1826,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     }
     /* 列宽必须显式给：auto 布局下「历史变化」这类长文本会把列宽抢走，
        结果「性价比评级」被压成几像素宽、徽章缩成圆点。 */
-    .sr__tab .c-name { width: 92px; }
+    .sr__tab .c-name { width: 112px; }
     .sr__tab .c-code { width: 58px; }
     .sr__tab .c-ind  { width: 76px; }
     .sr__tab .c-item { width: 188px; }
@@ -1876,29 +1876,42 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     .sr__badge--low { background: var(--line2); color: var(--ink3); }
     .sr__badge--todo { background: var(--warn-bg); color: var(--warn-ink); border-color: #E8D9B5; }
 
-    .sr__sub {
-      font-family: var(--font-serif-cn); font-size: 15px; font-weight: 600;
-      color: var(--color-text); margin: 22px 0 11px;
+    /* 风险小字：挂在公司名称下方。原「有变化风险的公司」独立卡片已删除，
+       改成一行小字跟着公司走，不占版面也不会被漏看 */
+    .sr__risk {
+      display: inline-block; margin-top: 4px; padding: 1px 5px 2px;
+      border-radius: 3px; background: var(--warn-bg); color: var(--warn-ink);
+      font-size: 10.5px; font-weight: 600; line-height: 1.45;
+      white-space: nowrap;
     }
-    .sr__picks {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 12px;
+
+    /* 尾注区：实操提醒 + 数据来源同处一栏，左边缘与表格块对齐 */
+    .sr__foot {
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid var(--color-border);
     }
-    .sr__pick {
-      border: 1px solid var(--color-border); border-radius: 10px;
-      padding: 13px 15px; background: #FDFCF9;
+    .sr__foot-title {
+      margin: 0 0 10px; font-family: var(--font-serif-cn);
+      font-size: 14px; font-weight: 600; color: var(--color-text);
     }
-    .sr__pick h4 {
-      margin: 0 0 6px; font-family: var(--font-serif-cn);
-      font-size: 14px; font-weight: 600; color: var(--color-primary);
-    }
-    .sr__pick p { margin: 0; font-size: 12.5px; line-height: 1.75; color: var(--ink2); }
     .sr__tips {
-      margin: 0; padding-left: 20px; font-size: 12.5px;
-      line-height: 1.85; color: var(--ink2);
+      margin: 0; padding: 0; list-style: none; counter-reset: srtip;
+      font-size: 12.5px; line-height: 1.85; color: var(--ink2);
     }
-    .sr__tips li { margin: 7px 0; }
-    .sr__meta { margin-top: 16px; font-size: 11.5px; color: var(--color-text-muted); line-height: 1.8; }
+    .sr__tips li {
+      counter-increment: srtip; position: relative;
+      margin: 7px 0; padding-left: 22px;
+    }
+    .sr__tips li::before {
+      content: counter(srtip);
+      position: absolute; left: 0; top: 3px;
+      font-family: var(--font-mono); font-size: 11px; line-height: 1.4;
+      color: var(--color-secondary);
+    }
+    .sr__meta {
+      margin: 14px 0 0; font-size: 11.5px;
+      color: var(--color-text-muted); line-height: 1.8;
+    }
 
     @media print {
       .sr__fold { break-inside: avoid; }
@@ -1976,7 +1989,10 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
   <!-- 导航（v3.4：合并页即首页，导航 3 项） -->
   <nav class="nav">
     <div class="container nav__inner">
-      <a href="index.html" class="nav__logo">划<span>算</span></a>
+      <div class="nav__left">
+        <a class="nav__back" href="https://cannotcode.cn/" title="返回不能代码主站">← 主站</a>
+        <a href="index.html" class="nav__logo">划<span>算</span></a>
+      </div>
       <ul class="nav__menu">
         <li><a href="index.html" class="active">首页</a></li>
         <li><a href="calculator.html">消费决策</a></li>
@@ -2556,7 +2572,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     </div>
   </div>
 
-  <!-- ========== v4.6 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
+  <!-- ========== v4.8 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
   <div class="layout-center srblock">
     <div class="col-head">
       <h2 class="col-head__title">股东回馈</h2>
@@ -2601,24 +2617,17 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       </div>
     </details>
 
-    <h3 class="sr__sub">性价比最高梯队</h3>
-    <div class="sr__picks"><div class="sr__pick"><h4>恒顺醋业 600305</h4><p>100股门槛，约720元入场；礼包电商价约98.9元；可邮寄，无需现场。礼品价值占比约14%-21%。</p></div><div class="sr__pick"><h4>仲景食品 300908</h4><p>100股门槛；西洋参/香菇酱礼包；线上申领邮寄，连续多年。礼品价值占比约3%-5%。</p></div><div class="sr__pick"><h4>宋城演艺 300144</h4><p>100股门槛，约800元入场；千古情免票+3名家属5折；体验价值高，需现场使用。</p></div><div class="sr__pick"><h4>盈新发展 000620</h4><p>门槛极低（约200元）；U盘/酒店抵扣券/开放日；上市30周年活动，可邮寄。</p></div><div class="sr__pick"><h4>盖世食品 835669</h4><p>无持股数量要求，全体股东可领；消暑礼盒；2022年以来4次回馈，可邮寄。</p></div></div>
+    <div class="sr__foot">
+      <h3 class="sr__foot-title">给普通散户的实操提醒</h3>
+      <ol class="sr__tips"><li>勿为伴手礼而买股票，伴手礼是锦上添花，不是收益来源。峨眉山A宣布股东免票后股价涨停，但随后冲高回落。</li><li>算清全成本：买卖佣金（A股最低5元）、印花税、现场参会差旅费、邮寄等待时间成本。</li><li>优先选择「可邮寄 + 低门槛 + 价值明确」的活动，如恒顺醋业、仲景食品、盖世食品。</li><li>警惕折扣权陷阱：参与折扣类活动前，务必先对比主流电商平台实际到手价（五粮液案例）。</li><li>注意隐性门槛：华大基因要求持股满1年，陈克明食品要求7000股以上，得利斯要求15000股以上。</li><li>港股碎股佣金可能远高于A股最低5元，奈雪的茶4股参会需单独核算买卖佣金成本。</li><li>台股零股领取需注意最后买进日、电子投票、代领规则，部分公司要求亲自出席。</li><li>历史连续性比单次活动更重要，警惕礼品缩水与活动取消，不应将伴手礼作为持仓理由。</li></ol>
 
-    <h3 class="sr__sub">品类最有特色</h3>
-    <div class="sr__picks"><div class="sr__pick"><h4>华大基因 300676</h4><p>肠道健康检测礼盒，健康属性强；需持股满1年，限量先到先得。</p></div><div class="sr__pick"><h4>东北制药 000597</h4><p>「栖芳源」化妆品买1得4+9折，医药跨界美妆的差异化回馈。</p></div><div class="sr__pick"><h4>周黑鸭 01458</h4><p>游轮晚宴+Venchi巧克力伴手礼，股东大会体验型回馈的代表。</p></div><div class="sr__pick"><h4>中钢 2002</h4><p>钛金属冷水瓶（380ml/98g），台股纪念品质感代表，零股可领。</p></div></div>
-
-    <h3 class="sr__sub">有变化风险的公司</h3>
-    <div class="sr__picks"><div class="sr__pick"><h4>贵州茅台 600519</h4><p>2024年2瓶50ml飞天+冰淇淋券→2025年笔记本+笔→2026年仅笔记本+笔，持续缩水。</p></div><div class="sr__pick"><h4>洋河股份 002304</h4><p>2025年取消伴手礼酒，改为笔记本+笔，晚宴从圆桌改为自助餐。</p></div><div class="sr__pick"><h4>洽洽食品 002557</h4><p>2024年8月有定制礼盒，2026年2月互动易明确回复「暂无」相关活动。</p></div><div class="sr__pick"><h4>五粮液 000858</h4><p>股东优惠价被指高于电商平台，折扣权实际价值极低，参与前需比价。</p></div></div>
-
-    <h3 class="sr__sub">给普通散户的实操提醒</h3>
-    <ol class="sr__tips"><li>勿为伴手礼而买股票，伴手礼是锦上添花，不是收益来源。峨眉山A宣布股东免票后股价涨停，但随后冲高回落。</li><li>算清全成本：买卖佣金（A股最低5元）、印花税、现场参会差旅费、邮寄等待时间成本。</li><li>优先选择「可邮寄 + 低门槛 + 价值明确」的活动，如恒顺醋业、仲景食品、盖世食品。</li><li>警惕折扣权陷阱：参与折扣类活动前，务必先对比主流电商平台实际到手价（五粮液案例）。</li><li>注意隐性门槛：华大基因要求持股满1年，陈克明食品要求7000股以上，得利斯要求15000股以上。</li><li>港股碎股佣金可能远高于A股最低5元，奈雪的茶4股参会需单独核算买卖佣金成本。</li><li>台股零股领取需注意最后买进日、电子投票、代领规则，部分公司要求亲自出席。</li><li>历史连续性比单次活动更重要，警惕礼品缩水与活动取消，不应将伴手礼作为持仓理由。</li></ol>
-
-    <p class="sr__meta">
+      <p class="sr__meta">
       数据来源：巨潮资讯、上交所、深交所、港交所披露易、公司公告／公众号、互动易、
       证券时报、中国证券报、上海证券报、新华财经、中时新闻网等公开渠道。
       各条来源见表格「来源」列；✅ 可直接访问 · ⚠️ 需站内搜索 · ❌ 已失效。
       <br>本区块为公开信息整理，数据时点以各条来源的公告日期为准，本页不另行标注「截至今日」。
-    </p>
+      </p>
+    </div>
   </div>
 
   <script>
@@ -2691,6 +2700,14 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       [["中"], "mid"],
       [["低", "—", "-"], "low"]
     ];
+    /* 「有变化风险」的公司：原来单列三张卡片，现在压缩成名称下方的一行小字，
+       看得见具体原因，又不占版面。键必须是公司名称（表格第 1 列原文） */
+    var RISK = {
+      "贵州茅台": "礼品连续缩水",
+      "洋河股份": "取消伴手礼酒",
+      "洽洽食品": "已无相关活动",
+      "五粮液": "折扣高于电商"
+    };
 
     function esc(s) {
       return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -2718,6 +2735,12 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       return "<td>" + esc(val) + "</td>";
     }
 
+    function nameCell(name) {
+      var risk = RISK[String(name || "").trim()];
+      return '<td class="c-name">' + esc(name) +
+        (risk ? '<span class="sr__risk">⚠ ' + esc(risk) + "</span>" : "") + "</td>";
+    }
+
     function render(key, tableId) {
       var cols = COLS[key], rows = DATA[key] || [], tbl = document.getElementById(tableId);
       if (!tbl) return;
@@ -2730,7 +2753,8 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
         h += "<tr>";
         for (var c = 0; c < cols.length; c++) {
           var v = rows[r][c];
-          if (c === cols.length - 2) { h += '<td class="is-rate">' + badge(v) + "</td>"; }
+          if (c === 0) { h += nameCell(v); }
+          else if (c === cols.length - 2) { h += '<td class="is-rate">' + badge(v) + "</td>"; }
           else { h += cellHtml(v, c === cols.length - 1); }
         }
         h += "</tr>";
@@ -3197,7 +3221,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     function buildPayload() {
       return {
         app: 'huasuan',
-        version: '4.7',
+        version: '4.8',
         exportedAt: new Date().toISOString(),
         cashflow: window.cashflowApp ? window.cashflowApp.state : null,
         plans: window.plansApp ? window.plansApp.state : null,
