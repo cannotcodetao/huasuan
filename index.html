@@ -1721,6 +1721,191 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       .cd__cell b { font-size: 30px; }
     }
 
+    /* ============================================================
+       v4.6 退休金测算
+       ============================================================ */
+    .pen__hint { font-size: 11px; color: var(--color-secondary); letter-spacing: .02em; }
+    .pen__fields {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 11px 14px; margin-top: 12px;
+    }
+    .pen__f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .pen__lab { font-size: 12px; color: var(--color-text-muted); line-height: 1.5; }
+    .pen__lab em { font-style: normal; color: var(--color-secondary); }
+    .pen__in {
+      font-family: var(--font-mono); font-size: 14px; color: var(--color-text);
+      background: var(--color-bg); border: 1px solid var(--color-border);
+      border-radius: 6px; padding: 7px 9px; width: 100%; box-sizing: border-box;
+      font-variant-numeric: tabular-nums;
+      transition: border-color .16s ease, background .16s ease;
+    }
+    .pen__in:hover { border-color: #D8D3C8; }
+    .pen__in:focus { outline: none; border-color: var(--color-secondary); background: #fff; }
+
+    .pen__rows { display: flex; flex-direction: column; margin-top: 8px; }
+    .pen__row {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+      padding: 8px 0; border-bottom: 1px dashed var(--color-border);
+    }
+    .pen__row:last-child { border-bottom: 0; }
+    .pen__k { font-size: 13px; color: var(--color-text-muted); }
+    .pen__k b { font-weight: 600; color: var(--color-text); }
+    .pen__v {
+      font-family: var(--font-mono); font-size: 15px; font-weight: 500;
+      color: var(--color-text); font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .pen__row--total {
+      margin-top: 6px; padding: 14px 0 8px;
+      border-top: 2px solid var(--color-text); border-bottom: 0;
+      align-items: flex-end;
+    }
+    .pen__row--total .pen__k { font-size: 13px; font-weight: 600; color: var(--color-text); }
+    .pen__row--total .pen__v {
+      font-size: 30px; font-weight: 600; color: var(--color-primary); letter-spacing: -.02em;
+    }
+    .pen__row--total .pen__v small {
+      font-family: var(--font-sans-cn); font-size: 12px; font-weight: 400;
+      color: var(--color-text-muted); margin-left: 3px; letter-spacing: 0;
+    }
+    .pen__note { margin-top: 13px; font-size: 12px; line-height: 1.75; color: var(--color-text-muted); }
+    .pen__warn {
+      margin-top: 11px; padding: 9px 12px; border-radius: 6px;
+      background: var(--warn-bg); color: var(--warn-ink);
+      font-size: 12px; line-height: 1.7;
+    }
+    .pen__warn[hidden] { display: none; }
+
+    @media (max-width: 640px) {
+      .pen__fields { grid-template-columns: 1fr; }
+      .pen__row--total .pen__v { font-size: 26px; }
+    }
+
+    /* ============================================================
+       v4.6 股东回馈
+       数据来自公开信息整理，样式按划算设计系统重做（原文件是蓝色系，不照搬）
+       ============================================================ */
+    .sr__lead {
+      max-width: 920px; margin: 0 0 14px; font-size: 13px; line-height: 1.85;
+      color: var(--color-text-muted);
+    }
+    .sr__disc {
+      margin-bottom: 16px; padding: 10px 14px;
+      border-left: 3px solid var(--color-secondary);
+      background: var(--sand-soft);
+      font-size: 12.5px; line-height: 1.8; color: var(--ink2);
+    }
+    .sr__disc b { color: var(--color-text); }
+
+    .sr__fold {
+      border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      background: var(--color-surface); margin-bottom: 12px; overflow: hidden;
+    }
+    .sr__fold > summary {
+      display: flex; align-items: baseline; gap: 10px; cursor: pointer;
+      list-style: none; padding: 14px 16px;
+      font-family: var(--font-serif-cn); font-size: 16px; font-weight: 600;
+      color: var(--color-primary);
+      background: linear-gradient(180deg, #FFFFFF 0%, #FDFCF9 100%);
+      transition: background .16s ease;
+    }
+    .sr__fold > summary::-webkit-details-marker { display: none; }
+    .sr__fold > summary:hover { background: #FDFBF6; }
+    .sr__fold > summary::after {
+      content: "＋"; margin-left: auto; flex: 0 0 auto;
+      font-family: var(--font-mono); font-size: 14px; color: var(--color-secondary);
+    }
+    .sr__fold[open] > summary::after { content: "－"; }
+    .sr__fold[open] > summary { border-bottom: 1px solid var(--color-border); }
+    .sr__cnt {
+      font-family: var(--font-mono); font-size: 11.5px; font-weight: 400;
+      color: var(--color-text-muted); letter-spacing: .02em;
+    }
+
+    .sr__scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .sr__tab {
+      width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 1180px;
+    }
+    /* 列宽必须显式给：auto 布局下「历史变化」这类长文本会把列宽抢走，
+       结果「性价比评级」被压成几像素宽、徽章缩成圆点。 */
+    .sr__tab .c-name { width: 92px; }
+    .sr__tab .c-code { width: 58px; }
+    .sr__tab .c-ind  { width: 76px; }
+    .sr__tab .c-item { width: 188px; }
+    .sr__tab .c-val  { width: 104px; }
+    .sr__tab .c-thr  { width: 108px; }
+    .sr__tab .c-cost { width: 92px; }
+    .sr__tab .c-how  { width: 126px; }
+    .sr__tab .c-hist { width: 170px; }
+    .sr__tab .c-rate { width: 84px; }
+    .sr__tab .c-src  { width: 126px; }
+    .sr__tab td.is-rate { white-space: nowrap; }
+    .sr__tab caption {
+      caption-side: top; text-align: left; padding: 10px 16px 8px;
+      font-size: 11.5px; color: var(--color-text-muted);
+    }
+    .sr__tab th, .sr__tab td {
+      padding: 9px 11px; border-bottom: 1px solid var(--color-border);
+      text-align: left; vertical-align: top; line-height: 1.65;
+    }
+    .sr__tab thead th {
+      position: sticky; top: 0; z-index: 2;
+      background: #F5F3EE; font-size: 11.5px; font-weight: 600;
+      color: var(--ink2); white-space: nowrap;
+      border-bottom: 1px solid #E0DCD2;
+    }
+    .sr__tab tbody tr:nth-child(even) { background: #FCFBF8; }
+    .sr__tab tbody tr:hover { background: var(--accent-soft); }
+    .sr__tab td.sr__url { max-width: 240px; word-break: break-all; }
+    .sr__tab a {
+      color: var(--color-primary); text-decoration: none;
+      border-bottom: 1px solid rgba(45, 74, 62, .3);
+    }
+    .sr__tab a:hover { border-bottom-color: var(--color-primary); }
+    .sr__acc {
+      display: block; margin-top: 2px; font-size: 10.5px;
+      color: var(--color-text-muted);
+    }
+
+    .sr__badge {
+      display: inline-block; padding: 2px 9px; border-radius: 999px;
+      font-size: 11.5px; font-weight: 600; white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .sr__badge--high { background: var(--color-primary); color: #fff; }
+    .sr__badge--midhigh { background: var(--sand-soft); color: #7A5A1F; border-color: rgba(184, 147, 90, .55); }
+    .sr__badge--mid { background: transparent; color: var(--ink2); border-color: var(--line); }
+    .sr__badge--low { background: var(--line2); color: var(--ink3); }
+    .sr__badge--todo { background: var(--warn-bg); color: var(--warn-ink); border-color: #E8D9B5; }
+
+    .sr__sub {
+      font-family: var(--font-serif-cn); font-size: 15px; font-weight: 600;
+      color: var(--color-text); margin: 22px 0 11px;
+    }
+    .sr__picks {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .sr__pick {
+      border: 1px solid var(--color-border); border-radius: 10px;
+      padding: 13px 15px; background: #FDFCF9;
+    }
+    .sr__pick h4 {
+      margin: 0 0 6px; font-family: var(--font-serif-cn);
+      font-size: 14px; font-weight: 600; color: var(--color-primary);
+    }
+    .sr__pick p { margin: 0; font-size: 12.5px; line-height: 1.75; color: var(--ink2); }
+    .sr__tips {
+      margin: 0; padding-left: 20px; font-size: 12.5px;
+      line-height: 1.85; color: var(--ink2);
+    }
+    .sr__tips li { margin: 7px 0; }
+    .sr__meta { margin-top: 16px; font-size: 11.5px; color: var(--color-text-muted); line-height: 1.8; }
+
+    @media print {
+      .sr__fold { break-inside: avoid; }
+      .sr__tab thead th { position: static; }
+      .sr__fold > summary::after { display: none; }
+    }
+
   </style>
   <script>
     // CountUp 动画（与 calculator.html 一致，参考 CountUp.js v2.8.1 简化实现，MIT）
@@ -2006,7 +2191,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
           <button class="cf__databar-btn cf__databar-btn--danger" id="unbindFileBtn" hidden>解除绑定</button>
         </span>
 
-        <span class="cf__databar-location" title="localStorage 键名：huasuan_cashflow / huasuan_plans / huasuan_freedom_v1">huasuan_cashflow / huasuan_plans / huasuan_freedom_v1</span>
+        <span class="cf__databar-location" title="localStorage 键名：huasuan_cashflow / huasuan_plans / huasuan_freedom_v1 / huasuan_pension_v1">huasuan_* × 4</span>
         <input type="file" id="importFile" accept=".json,application/json" style="display:none">
       </div>
 
@@ -2088,6 +2273,109 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
         </div>
 
       </div><!-- /.layout-center -->
+
+      <!-- ========== v4.6 中段二：退休金测算（数据总览 与 未来计划 之间） ========== -->
+      <div class="layout-center penblock">
+        <div class="col-head">
+          <h2 class="col-head__title">退休金测算</h2>
+          <span class="col-head__eyebrow">PENSION</span>
+        </div>
+
+        <div class="lc-grid lc-grid--pair">
+          <!-- 左：参数输入 -->
+          <div class="dash__card">
+            <div class="dash__card-hd">
+              <h3 class="dash__card-title">你的参数</h3>
+              <span class="pen__hint">默认是示例值，请改成自己的</span>
+            </div>
+            <div class="pen__fields">
+              <label class="pen__f">
+                <span class="pen__lab">出生年月</span>
+                <input type="month" id="penBirth" class="pen__in">
+              </label>
+              <label class="pen__f">
+                <span class="pen__lab">参保身份 <em>决定原法定退休年龄</em></span>
+                <select id="penSex" class="pen__in">
+                  <option value="male">男（原 60 岁）</option>
+                  <option value="f55">女 · 干部／管理技术（原 55 岁）</option>
+                  <option value="f50">女 · 工人（原 50 岁）</option>
+                </select>
+              </label>
+              <label class="pen__f">
+                <span class="pen__lab">退休地计发基数（元/月）</span>
+                <input type="number" id="penBase" class="pen__in" min="0" step="100" inputmode="decimal">
+              </label>
+              <label class="pen__f">
+                <span class="pen__lab">累计缴费年限（年，含视同）</span>
+                <input type="number" id="penYears" class="pen__in" min="0" max="50" step="0.5" inputmode="decimal">
+              </label>
+              <label class="pen__f">
+                <span class="pen__lab">平均缴费指数 <em>0.6–3.0</em></span>
+                <input type="number" id="penIndex" class="pen__in" min="0.4" max="3" step="0.01" inputmode="decimal">
+              </label>
+              <label class="pen__f">
+                <span class="pen__lab">个人账户储存额（元）</span>
+                <input type="number" id="penAccount" class="pen__in" min="0" step="1000" inputmode="decimal">
+              </label>
+              <label class="pen__f" style="grid-column:1/-1">
+                <span class="pen__lab">过渡性养老金（元/月，仅「中人」有；没有填 0）</span>
+                <input type="number" id="penTrans" class="pen__in" min="0" step="10" inputmode="decimal">
+              </label>
+            </div>
+            <div class="pen__note">
+              计发基数查「退休所在地上年度全口径城镇单位就业人员月平均工资」，各地人社局每年公布。
+              本页不预测未来工资增长与政策调整，只按你填入的数字推演。
+            </div>
+          </div>
+
+          <!-- 右：测算结果 -->
+          <div class="dash__card">
+            <div class="dash__card-hd">
+              <h3 class="dash__card-title">测算结果</h3>
+              <span class="pen__hint" id="penStamp">—</span>
+            </div>
+            <div class="pen__rows">
+              <div class="pen__row">
+                <span class="pen__k">预计退休时间</span>
+                <span class="pen__v" id="penRetire">—</span>
+              </div>
+              <div class="pen__row">
+                <span class="pen__k">法定退休年龄 <b>（含延迟）</b></span>
+                <span class="pen__v" id="penAge">—</span>
+              </div>
+              <div class="pen__row">
+                <span class="pen__k">距离退休还有</span>
+                <span class="pen__v" id="penLeft">—</span>
+              </div>
+              <div class="pen__row">
+                <span class="pen__k">个人账户计发月数</span>
+                <span class="pen__v" id="penMonths">—</span>
+              </div>
+              <div class="pen__row">
+                <span class="pen__k">基础养老金</span>
+                <span class="pen__v" id="penBasic">—</span>
+              </div>
+              <div class="pen__row">
+                <span class="pen__k">个人账户养老金</span>
+                <span class="pen__v" id="penPersonal">—</span>
+              </div>
+              <div class="pen__row">
+                <span class="pen__k">过渡性养老金</span>
+                <span class="pen__v" id="penTransOut">—</span>
+              </div>
+              <div class="pen__row pen__row--total">
+                <span class="pen__k">预计每月可领合计</span>
+                <span class="pen__v" id="penTotal">—<small>元/月</small></span>
+              </div>
+            </div>
+            <div class="pen__warn" id="penWarn" hidden></div>
+            <div class="pen__note" id="penNote">
+              相当于当地平均工资的 <b id="penRate">—</b>。养老金口径按「基础养老金 + 个人账户养老金」
+              计算，计发月数整岁取现行表、非整岁按线性插值近似。
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ========== v3.6 底栏：未来计划（全宽） ========== -->
       <div class="layout-bottom">
@@ -2268,6 +2556,212 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     </div>
   </div>
 
+  <!-- ========== v4.6 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
+  <div class="layout-center srblock">
+    <div class="col-head">
+      <h2 class="col-head__title">股东回馈</h2>
+      <span class="col-head__eyebrow">SHAREHOLDER PERKS</span>
+    </div>
+
+    <p class="sr__lead">
+      A股 / 港股 / 台股上市公司给股东发的伴手礼、专属优惠与体验型回馈。
+      共收录 <b id="srTotal">0</b> 条，按性价比评级排序，点开对应市场展开明细。
+    </p>
+
+    <div class="sr__disc">
+      <b>不构成投资建议，不承诺收益。</b>
+      股价波动才是持仓损益的核心，伴手礼不应被夸大为核心收益来源。
+      价值估算依据电商价／公司公告／媒体报道；活动是否延续、门槛是否调整，一律以公司最新公告为准。
+    </div>
+
+    <details class="sr__fold" id="srFoldA">
+      <summary>A股 <span class="sr__cnt">按性价比评级排序</span></summary>
+      <div class="sr__scroll">
+        <table class="sr__tab" id="srTableA" aria-label="A股股东回馈总表">
+          <caption>A股上市公司股东回馈总表（按性价比评级排序）</caption>
+        </table>
+      </div>
+    </details>
+
+    <details class="sr__fold" id="srFoldHk">
+      <summary>港股 <span class="sr__cnt">含股东大会现场体验型回馈</span></summary>
+      <div class="sr__scroll">
+        <table class="sr__tab" id="srTableHk" aria-label="港股股东回馈总表">
+          <caption>港股上市公司股东回馈总表</caption>
+        </table>
+      </div>
+    </details>
+
+    <details class="sr__fold" id="srFoldTw">
+      <summary>台股 <span class="sr__cnt">股东会纪念品惯例</span></summary>
+      <div class="sr__scroll">
+        <table class="sr__tab" id="srTableTw" aria-label="台股股东会纪念品总表">
+          <caption>台股股东会纪念品惯例（零股与代领规则另见实操提醒）</caption>
+        </table>
+      </div>
+    </details>
+
+    <h3 class="sr__sub">性价比最高梯队</h3>
+    <div class="sr__picks"><div class="sr__pick"><h4>恒顺醋业 600305</h4><p>100股门槛，约720元入场；礼包电商价约98.9元；可邮寄，无需现场。礼品价值占比约14%-21%。</p></div><div class="sr__pick"><h4>仲景食品 300908</h4><p>100股门槛；西洋参/香菇酱礼包；线上申领邮寄，连续多年。礼品价值占比约3%-5%。</p></div><div class="sr__pick"><h4>宋城演艺 300144</h4><p>100股门槛，约800元入场；千古情免票+3名家属5折；体验价值高，需现场使用。</p></div><div class="sr__pick"><h4>盈新发展 000620</h4><p>门槛极低（约200元）；U盘/酒店抵扣券/开放日；上市30周年活动，可邮寄。</p></div><div class="sr__pick"><h4>盖世食品 835669</h4><p>无持股数量要求，全体股东可领；消暑礼盒；2022年以来4次回馈，可邮寄。</p></div></div>
+
+    <h3 class="sr__sub">品类最有特色</h3>
+    <div class="sr__picks"><div class="sr__pick"><h4>华大基因 300676</h4><p>肠道健康检测礼盒，健康属性强；需持股满1年，限量先到先得。</p></div><div class="sr__pick"><h4>东北制药 000597</h4><p>「栖芳源」化妆品买1得4+9折，医药跨界美妆的差异化回馈。</p></div><div class="sr__pick"><h4>周黑鸭 01458</h4><p>游轮晚宴+Venchi巧克力伴手礼，股东大会体验型回馈的代表。</p></div><div class="sr__pick"><h4>中钢 2002</h4><p>钛金属冷水瓶（380ml/98g），台股纪念品质感代表，零股可领。</p></div></div>
+
+    <h3 class="sr__sub">有变化风险的公司</h3>
+    <div class="sr__picks"><div class="sr__pick"><h4>贵州茅台 600519</h4><p>2024年2瓶50ml飞天+冰淇淋券→2025年笔记本+笔→2026年仅笔记本+笔，持续缩水。</p></div><div class="sr__pick"><h4>洋河股份 002304</h4><p>2025年取消伴手礼酒，改为笔记本+笔，晚宴从圆桌改为自助餐。</p></div><div class="sr__pick"><h4>洽洽食品 002557</h4><p>2024年8月有定制礼盒，2026年2月互动易明确回复「暂无」相关活动。</p></div><div class="sr__pick"><h4>五粮液 000858</h4><p>股东优惠价被指高于电商平台，折扣权实际价值极低，参与前需比价。</p></div></div>
+
+    <h3 class="sr__sub">给普通散户的实操提醒</h3>
+    <ol class="sr__tips"><li>勿为伴手礼而买股票，伴手礼是锦上添花，不是收益来源。峨眉山A宣布股东免票后股价涨停，但随后冲高回落。</li><li>算清全成本：买卖佣金（A股最低5元）、印花税、现场参会差旅费、邮寄等待时间成本。</li><li>优先选择「可邮寄 + 低门槛 + 价值明确」的活动，如恒顺醋业、仲景食品、盖世食品。</li><li>警惕折扣权陷阱：参与折扣类活动前，务必先对比主流电商平台实际到手价（五粮液案例）。</li><li>注意隐性门槛：华大基因要求持股满1年，陈克明食品要求7000股以上，得利斯要求15000股以上。</li><li>港股碎股佣金可能远高于A股最低5元，奈雪的茶4股参会需单独核算买卖佣金成本。</li><li>台股零股领取需注意最后买进日、电子投票、代领规则，部分公司要求亲自出席。</li><li>历史连续性比单次活动更重要，警惕礼品缩水与活动取消，不应将伴手礼作为持仓理由。</li></ol>
+
+    <p class="sr__meta">
+      数据来源：巨潮资讯、上交所、深交所、港交所披露易、公司公告／公众号、互动易、
+      证券时报、中国证券报、上海证券报、新华财经、中时新闻网等公开渠道。
+      各条来源见表格「来源」列；✅ 可直接访问 · ⚠️ 需站内搜索 · ❌ 已失效。
+      <br>本区块为公开信息整理，数据时点以各条来源的公告日期为准，本页不另行标注「截至今日」。
+    </p>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    var COLS = {
+      a: ["公司名称", "代码", "行业", "伴手礼内容", "大致价值", "最低持股门槛", "最低入场成本", "领取方式", "历史变化", "性价比评级", "来源"],
+      hk: ["公司名称", "代码", "行业", "伴手礼内容", "大致价值", "最低持股门槛", "最低入场成本", "领取方式", "历史变化", "性价比评级", "来源"],
+      tw: ["公司名称", "代码", "行业", "纪念品内容", "大致价值", "最低持股门槛", "领取方式", "历史变化", "性价比评级", "来源"],
+    };
+    var DATA = {
+      a: [
+        ["恒顺醋业", "600305", "食品", "有机香醋+有机酱油+有机特级酱油+有机料酒礼包", "约98.9元", "100股", "约720元", "线上申领→邮寄", "2026年首次，曾一度缺货", "高", {"u": "https://stcn.com/article/detail/3926995.html", "t": "证券时报", "a": "✅ 可访问"}],
+        ["仲景食品", "300908", "食品", "仲景西洋参（10g×10袋）；2025年曾赠香菇酱/香菇贡菜", "约80-150元", "100股", "约3000元", "微信服务号“仲景食品”→“股东申领”→邮寄", "2022年以来4次回馈", "高", {"u": "https://www.stcn.com/article/detail/3667927.html", "t": "证券时报", "a": "✅ 可访问"}],
+        ["盖世食品", "835669", "食品", "盖世2025消暑礼盒", "约80-120元", "无持股数量要求（全体股东）", "100股（北交所最低100股）", "微信公众号“盖世食品”→“企业介绍-股东回馈”→邮寄", "2022年以来4次，2025年为消暑礼盒", "高", {"u": "http://www.bse.cn/disclosure/2025/2025-07-04/dc4aed23b810439e96bcf7aab3c9838f.pdf", "t": "北交所公告PDF", "a": "✅ 可访问"}],
+        ["宋城演艺", "300144", "文旅", "千古情景区免费入园1次，可携3名家属（5折）", "约300-400元+家属节省约450-600元", "100股", "约800元", "线上登记→景区核验", "2026年5月首次推出", "高", {"u": "https://www.szse.cn/disclosure/listed/bulletinDetail/index.html?94205888-1e99-4933-943f-2456ca6de026", "t": "深交所公告", "a": "✅ 可访问"}],
+        ["盈新发展", "000620", "文旅", "128G定制U盘/400元酒店住宿抵扣券/股东开放日抽选50名", "约400-500元", "全体股东", "约200元", "微信小程序“长沙铜官窑国风乐园”→“股东活动”→邮寄", "2026年上市30周年首次", "高", {"u": "http://app.cnstock.com/zzb/zgzqb/html/2026-07/21/nw.D110000zgzqb_20260721_3-B084.htm", "t": "中国证券报", "a": "✅ 可访问"}],
+        ["千味央厨", "001215", "食品", "速冻面米制品礼包（早餐面点、预制菜等）", "公告称价值200元", "100股", "约3700元", "线上申领→邮寄", "2025年12月推出", "中高", {"u": "https://stcn.com/article/detail/3519811.html", "t": "证券时报", "a": "✅ 可访问"}],
+        ["好想你", "002582", "食品", "A款健康年货礼盒（零售399元→股东价179元）；B款同享5折以下", "折扣节省约200元", "100股", "约800元", "线上购买", "2026年1月推出", "中高", {"u": "https://jnzstatic.cs.com.cn/zzb/htmlInfo/d6f9745c180b45728c999ebbf7497c76.html", "t": "中证金牛座", "a": "✅ 可访问"}],
+        ["莲花控股", "600186", "食品", "产品礼盒（松茸鲜调味料、本酿酱油等）", "约80-120元", "500股", "约1500元", "“古东管家”App→邮寄", "2025年5月首次，限量按申领顺序", "中高", {"u": "https://paper.cnstock.com/html/2025-05/17/content_2069269.htm", "t": "上海证券报", "a": "✅ 可访问"}],
+        ["峨眉山A", "000888", "文旅", "进山门票免票+万年索道+温泉+滑雪（每日1小时），可携2名家属（半价）", "约370元/人", "500股", "约7000元", "现场凭证件", "2025年12月首次大规模股东免票", "中高", {"u": "https://stcn.com/article/detail/3524549.html", "t": "证券时报", "a": "✅ 可访问"}],
+        ["天目湖", "603136", "文旅", "山水园+南山竹海免门票", "约120-180元", "100股", "约1200元", "官方微信公众号预约→现场凭证", "2026年1月春节福利，9月再次推出", "中高", {"u": "http://www.eeo.com.cn/2026/0213/794150.shtml", "t": "经济观察网", "a": "✅ 可访问"}],
+        ["苏盐井神", "603299", "食品", "淮盐新品体验礼盒一盒", "约50-100元", "全体股东", "约1000元", "邮件申领→邮寄", "2026年1月推出", "中高", {"u": "https://paper.cnstock.com/html/2026-01/05/content_2166331.htm", "t": "上海证券报", "a": "✅ 可访问"}],
+        ["佳禾食品", "605300", "食品", "金猫金奖冻干咖啡1盒+现磨鲜萃咖啡液2盒+浓缩液1盒", "约120-180元", "100股", "约1500元", "线上申领→邮寄", "2022年起连续4年", "中高", {"u": "https://www.cnstock.com/commonDetail/598778", "t": "上海证券报", "a": "✅ 可访问"}],
+        ["全聚德", "002186", "餐饮", "五折券权益卡1张，用于购买自营产品（鸭蛋卷、酱香白酒等）", "折扣节省约100-200元", "全体股东", "约940元", "微信扫码领卡→线上购买→快递送达", "2026年1月首次推出", "中", {"u": "http://vip.stock.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?CompanyCode=80044949&gather=1&id=11934037", "t": "新浪财经公告", "a": "✅ 可访问"}],
+        ["华大基因", "300676", "医药", "华常康®肠道健康检测礼盒", "约300-500元", "100股+持股满1年", "约4000元+持有1年", "线上申领→邮寄，限量先到先得", "2025年2月首次", "中", {"u": "https://www.stcn.com/article/detail/1515370.html", "t": "证券时报", "a": "✅ 可访问"}],
+        ["舍得酒业", "600702", "白酒", "马年股东专属纪念酒，活动价598元/盒，买一盒到手两盒", "折扣节省约598元", "全体股东", "约6000元", "线上购买", "2026年4月活动", "中", {"u": "http://ex.chinadaily.com.cn/exchange/partners/82/rss/channel/cn/columns/6ldgif/stories/WS682a7eada310205377033ab9.html", "t": "中国日报", "a": "✅ 可访问"}],
+        ["迎驾贡酒", "603198", "白酒", "大师版十周年纪念酒（60度599ml）15280瓶，股东券后1199元/瓶", "折扣节省约300-500元/瓶", "全体股东", "约5500元", "线上购买", "2025年5月上市十周年", "中", {"u": "http://ex.chinadaily.com.cn/exchange/partners/82/rss/channel/cn/columns/6ldgif/stories/WS682a7eada310205377033ab9.html", "t": "中国日报", "a": "✅ 可访问"}],
+        ["寿仙谷", "603896", "医药", "破壁灵芝孢子粉片、无糖铁皮枫斗颗粒等专属优惠价", "折扣节省约100-300元", "100股", "约3000元", "微信扫码→线上购买", "2026年春节活动，连续两年", "中", {"u": "https://www.stcn.com/article/detail/3620883.html", "t": "证券时报", "a": "✅ 可访问"}],
+        ["东北制药", "000597", "医药", "“栖芳源”化妆品“买1得4”+9折", "折扣节省约100-200元", "500股", "约2500元", "企业微信→线上商城", "2025年12月推出", "中", {"u": "https://www.cnfin.com/announ/detail/index.html?id=819835232107&code=000597&dannoun=lcdetail&announ=lc", "t": "新华财经", "a": "✅ 可访问"}],
+        ["海峡股份", "002320", "交通", "特惠船票（股东及同行亲友可购买）", "折扣节省约100-300元", "全体股东", "100股", "微信公众号“西沙旅游直通车”→线上购买", "连续多年开展", "中", {"u": "https://www.cnfin.com/announ/detail/index.html?id=834615784264&code=002320&dannoun=lcdetail&announ=lc", "t": "新华财经", "a": "✅ 可访问"}],
+        ["荣泰健康", "603579", "家电", "股东专属折扣购入公司指定产品（按摩椅、按摩器等）", "折扣节省约200-500元", "全体股东", "100股", "微信公众号“荣泰健康”→线上购买", "2025年7月首次", "中", {"u": "https://paper.cnstock.com/html/2025-07/25/content_2097888.htm", "t": "上海证券报", "a": "✅ 可访问"}],
+        ["洽洽食品", "002557", "食品", "定制礼盒（含高端葵珍瓜子等）", "约80-120元", "100股", "约3000元", "公众号申领→邮寄", "2024年8月赠送；2026年2月互动易回复“暂无”", "中（待观察）", {"u": "https://static.cninfo.com.cn/finalpage/2024-08-29/1221025033.PDF", "t": "巨潮资讯PDF", "a": "✅ 可访问"}],
+        ["欢乐家", "300997", "食品", "“椰鲨”椰子水1箱", "约60-80元", "100股", "约1200元", "微信扫码→线上申领→统一发货", "2024年活动，2025—2026年无延续", "中", {"u": "http://static.cninfo.com.cn/finalpage/2024-04-10/1219564840.PDF", "t": "巨潮资讯PDF", "a": "✅ 可访问"}],
+        ["爱朋医疗", "300753", "医药", "诺斯清生理性海水鼻腔护理喷雾器儿童装1瓶+小诺护眼喷雾1瓶", "约60-100元", "1000股", "约15000元", "线上申领→邮寄", "连续四年开展", "中", {"u": "", "t": "证券日报（2025-05-13）⚠️ 需站内搜索", "a": "⚠️ 需站内搜索"}],
+        ["五芳斋", "603237", "餐饮食品", "“丰年五芳”粽子礼盒", "约80-120元", "1000股", "约15000元", "微信扫码→线上申领→快递", "2025年端午活动，连续两年", "低", {"u": "https://paper.cnstock.com/html/2025-05/28/content_2073696.htm", "t": "上海证券报", "a": "✅ 可访问"}],
+        ["得利斯", "002330", "食品", "布拉格火腿（市场价值约208元/份）", "约208元", "15000股", "约9万元", "微信公众号申领→快递", "2025年上市15周年", "低", {"u": "https://file.finance.qq.com/finance/hs/pdf/2025/01/07/1222244190.PDF", "t": "腾讯财经PDF", "a": "✅ 可访问"}],
+        ["贵州茅台", "600519", "白酒", "笔记本+笔（2026年）；2024年曾送2瓶50ml飞天+冰淇淋券", "2026年仅约20-50元", "100股", "约15万元", "现场参会", "大幅缩水", "低", {"u": "https://static.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-06-03/600519_20260603_NDJ3.pdf", "t": "上交所公告PDF", "a": "✅ 可访问"}],
+        ["五粮液", "000858", "白酒", "整箱普五赠2瓶50ml品鉴酒，股东价被指高于电商", "折扣节省有限", "100股", "约1.3万元", "线上购酒", "2026年新春活动", "低", {"u": "https://basic.10jqka.com.cn/000858/#5463675909570855070", "t": "同花顺互动问答", "a": "✅ 可访问"}],
+        ["洋河股份", "002304", "白酒", "笔记本+笔，取消伴手礼酒", "约50元", "100股", "约8000元", "现场参会", "2025年取消伴手礼酒", "低", {"u": "https://irm.cninfo.com.cn/ircs/question/questionDetail?questionId=2146036510993821696", "t": "巨潮互动易", "a": "✅ 可访问"}],
+        ["康冠科技", "001308", "家电", "按持股数量赠不同规格产品", "待核实", "1000股", "约3万元", "微信“康冠科技投资者关系”公众号→申领", "2025年活动", "低", {"u": "http://static.cninfo.com.cn/finalpage/2025-10-28/1224738752.PDF", "t": "巨潮资讯PDF", "a": "✅ 可访问"}],
+        ["陈克明食品", "002661", "食品", "600g或1.8kg手延面礼盒", "约30-80元", "7000股/12000股", "约10.5万元", "微信公众号“陈克明食品”→申领→邮寄", "2026年1月活动", "低", {"u": "https://paper.cnstock.com/html/2026-01/28/content_2174724.htm", "t": "上海证券报", "a": "✅ 可访问"}],
+        ["劲仔食品", "003000", "食品", "零食大礼包（具体品类待核实）", "待核实", "100股", "待核实", "东财/同花顺渠道", "近两年开展", "待核实", {"u": "", "t": "互动易搜索：劲仔食品+股东回馈⚠️ 需站内搜索", "a": "⚠️ 需站内搜索"}],
+      ],
+      hk: [
+        ["周黑鸭", "01458", "食品餐饮", "游轮晚宴+茶歇午宴+Venchi巧克力伴手礼", "约200-500港元", "碎股（1股即可参会）", "约1.2港元×1股≈1.2港元", "现场参会", "30周年庆豪华体验；2026年4月股东大会公司回复“未安排礼品赠送环节”", "高（周年庆）低（常规）", {"u": "https://www.zhouheiya.cn/", "t": "公司官网", "a": "⚠️ 媒体报道为主"}],
+        ["奈雪的茶", "02150", "茶饮", "现场免费饮料2瓶（果蔬汁+橙汁美式）", "约30-50港元", "4股（碎股）", "4股×约1港元≈4港元", "现场参会", "2026年6月年度股东大会", "高", {"u": "https://www1.hkexnews.hk/", "t": "港交所披露易", "a": "⚠️ 需搜索02150"}],
+      ],
+      tw: [
+        ["中钢", "2002", "钢铁", "钛金属轻巧冷水瓶（380ml，98g）", "约300-500新台币", "零股股东完成电子投票也可领", "股东会现场或指定地点", "2024年“砧心有您”不锈钢砧板", "中高", {"u": "https://www.chinatimes.com/cn/newspapers/20250425000263-260202?chdtv", "t": "中时新闻网", "a": "✅ 可访问"}],
+        ["台泥", "1101", "水泥", "多功能双色盖毯（可折叠成枕）", "约200-400新台币", "至少一张股票（1000股），不含零股", "股东会现场或指定地点", "2025年露营风，热门", "中高", {"u": "https://www.chinatimes.com/cn/realtimenews/20250326003868-260410?chdtv", "t": "中时新闻网", "a": "✅ 可访问"}],
+        ["联电", "2303", "半导体", "咖波联名限定钢珠笔套组（共6款）", "二手市场约350新台币", "零股可领（须亲自出席或电子投票）", "股东会现场", "连续3年联名（2023碗组、2024随行杯、2025钢珠笔）", "中", {"u": "https://www.chinatimes.com/cn/realtimenews/20250312003299-260410?chdtv", "t": "中时新闻网", "a": "✅ 可访问"}],
+        ["大鲁阁", "1432", "运动休闲", "运动抵用券（价值2400-4200元）", "宣称价值2400-4200新台币", "1股即可", "股东会现场", "2025—2026年持续", "待核实", {"u": "", "t": "中时2025-03-25（媒体来源）⚠️ 无独立公告链接", "a": "⚠️ 无独立公告链接"}],
+        ["台积电", "2330", "半导体", "不发放", "—", "—", "—", "股东人数超百万，明确不发放", "—", {"u": "", "t": "股东会2026-06（媒体来源）⚠️ 无独立公告链接", "a": "⚠️ 无独立公告链接"}],
+      ],
+    };
+    /* 列名 → 列宽 class。三张表列顺序不同（台股少「最低入场成本」），
+       用列名映射比 nth-child 稳，加列时不用重算序号 */
+    var COL_CLASS = {
+      "公司名称": "c-name", "代码": "c-code", "行业": "c-ind",
+      "伴手礼内容": "c-item", "纪念品内容": "c-item",
+      "大致价值": "c-val", "最低持股门槛": "c-thr", "最低入场成本": "c-cost",
+      "领取方式": "c-how", "历史变化": "c-hist",
+      "性价比评级": "c-rate", "来源": "c-src"
+    };
+    var BADGE = [
+      [["待核实"], "todo"],
+      [["中高"], "midhigh"],
+      [["高"], "high"],
+      [["中"], "mid"],
+      [["低", "—", "-"], "low"]
+    ];
+
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function badge(text) {
+      var t = String(text || "").trim(), cls = "mid";
+      for (var i = 0; i < BADGE.length; i++) {
+        for (var j = 0; j < BADGE[i][0].length; j++) {
+          if (t.indexOf(BADGE[i][0][j]) === 0) { cls = BADGE[i][1]; i = BADGE.length; break; }
+        }
+      }
+      return '<span class="sr__badge sr__badge--' + cls + '">' + esc(t || "—") + "</span>";
+    }
+
+    function cellHtml(val, isLast) {
+      if (isLast && val && typeof val === "object") {
+        var a = val.u
+          ? '<a href="' + esc(val.u) + '" target="_blank" rel="noopener noreferrer">' + esc(val.t) + "</a>"
+          : esc(val.t);
+        return '<td class="sr__url">' + a + (val.a ? '<span class="sr__acc">' + esc(val.a) + "</span>" : "") + "</td>";
+      }
+      return "<td>" + esc(val) + "</td>";
+    }
+
+    function render(key, tableId) {
+      var cols = COLS[key], rows = DATA[key] || [], tbl = document.getElementById(tableId);
+      if (!tbl) return;
+      var h = "<thead><tr>";
+      for (var i = 0; i < cols.length; i++) {
+        h += '<th class="' + (COL_CLASS[cols[i]] || "") + '">' + esc(cols[i]) + "</th>";
+      }
+      h += "</tr></thead><tbody>";
+      for (var r = 0; r < rows.length; r++) {
+        h += "<tr>";
+        for (var c = 0; c < cols.length; c++) {
+          var v = rows[r][c];
+          if (c === cols.length - 2) { h += '<td class="is-rate">' + badge(v) + "</td>"; }
+          else { h += cellHtml(v, c === cols.length - 1); }
+        }
+        h += "</tr>";
+      }
+      h += "</tbody>";
+      tbl.innerHTML = h;
+    }
+
+    function boot() {
+      render("a", "srTableA");
+      render("hk", "srTableHk");
+      render("tw", "srTableTw");
+      var n = (DATA.a || []).length + (DATA.hk || []).length + (DATA.tw || []).length;
+      var el = document.getElementById("srTotal");
+      if (el) el.textContent = n;
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", boot);
+    } else {
+      boot();
+    }
+  })();
+  </script>
+
+
+
+
+
+
+
   <footer class="footer">
     <div class="container footer__inner">
       <div class="footer__brand">划算</div>
@@ -2324,15 +2818,15 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     };
 
+    /* v4.7 默认值精简：
+         收入只留「工资 6,000」；支出只留「全国平均消费 2,456」；
+         不再预置房贷等任何贷款，避免新用户一进来就看到别人的房贷。
+         2,456 = 国家统计局 2025 全国人均月消费，与算式参数里的 X=0.2456 万同源。
+         清空所有仍然走 getEmptyState()，那里是真正的空白行。 */
     CashflowApp.prototype.getDefaultState = function() {
       var base = this.todayMonthStr();
       var expenses = [
-        { id: this.genId(), name: '订阅服务', amount: 300, category: 'fixed' },
-        { id: this.genId(), name: '房贷', amount: 4272, category: 'variable', isLoan: true, loanType: 'equal-installment', annualRate: 3.1, totalMonths: 360, totalAmount: 1000000, currentPeriod: 36 },
-        { id: this.genId(), name: '餐饮', amount: 2500, category: 'variable' },
-        { id: this.genId(), name: '交通', amount: 800, category: 'variable' },
-        { id: this.genId(), name: '购物', amount: 1500, category: 'variable' },
-        { id: this.genId(), name: '娱乐', amount: 1000, category: 'variable' }
+        { id: this.genId(), name: '全国平均消费', amount: 2456, category: 'variable' }
       ];
       return {
         snapshotName: '当前月',
@@ -2344,8 +2838,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
           return acc;
         }, {}),
         incomes: [
-          { id: this.genId(), name: '工资', amount: 15000 },
-          { id: this.genId(), name: '副业', amount: 2000 }
+          { id: this.genId(), name: '工资', amount: 6000 }
         ],
         expenses: expenses,
         updatedAt: null
@@ -2699,24 +3192,53 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     };
 
     // ========== 导出 / 导入 ==========
-    /* 一份备份＝三块数据：现金流（huasuan_cashflow）、未来计划（huasuan_plans）、
-       算式参数（huasuan_freedom_v1）。三块缺一个，换台机器导入结果就对不上 */
-    CashflowApp.prototype.exportData = function() {
-      var payload = {
+    /* 组装备份 payload —— 「导出数据」与「写回绑定文件」共用同一份，
+       避免两处字段各写一遍后悄悄漂移（加退休金模块时就吃过这个隐患） */
+    function buildPayload() {
+      return {
         app: 'huasuan',
-        version: '4.3',
+        version: '4.7',
         exportedAt: new Date().toISOString(),
-        cashflow: this.state,
+        cashflow: window.cashflowApp ? window.cashflowApp.state : null,
         plans: window.plansApp ? window.plansApp.state : null,
-        formula: (window.__FIRE__ && window.__FIRE__.state) ? window.__FIRE__.state() : null
+        formula: (window.__FIRE__ && window.__FIRE__.state) ? window.__FIRE__.state() : null,
+        pension: (window.pensionApp && window.pensionApp.state) ? window.pensionApp.state() : null
       };
+    }
+
+    /* 导出数据
+       已绑定数据文件 → 直接写回那个文件，不产生副本（避免「绑着 A 文件却下了一份 B 文件」
+       这种两份数据各自演化的局面）；文件名因此不需要时间戳。
+       未绑定 → 仍然下载一份，名字固定，不带日期。 */
+    CashflowApp.prototype.exportData = function() {
+      var self = this;
+      var btn = document.getElementById('exportBtn');
+
+      function flash(text) {
+        if (!btn) return;
+        var old = btn.getAttribute('data-label') || btn.textContent;
+        btn.setAttribute('data-label', old);
+        btn.textContent = text;
+        btn.disabled = true;
+        setTimeout(function() {
+          btn.textContent = btn.getAttribute('data-label') || old;
+          btn.disabled = false;
+        }, 1800);
+      }
+
+      if (window.dataFileApp && window.dataFileApp.handle) {
+        window.dataFileApp.writeNow().then(function() {
+          flash(window.dataFileApp.lastWriteOk ? '已写入文件' : '写入失败 · 请重新授权');
+        }, function() { flash('写入失败'); });
+        return;
+      }
+
+      var payload = buildPayload();
       var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
-      var d = new Date();
-      var stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
       a.href = url;
-      a.download = 'huasuan-backup-' + stamp + '.json';
+      a.download = 'huasuan-data.json';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2769,6 +3291,11 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       } else if (window.__FIRE__ && window.__FIRE__.refresh) {
         // 旧备份（v3.x）没有算式参数 → 保留当前值，但摘要与倒计时仍要跟着新数据刷新
         window.__FIRE__.refresh();
+      }
+
+      // 退休金参数：旧备份没有这一段，缺省时保留当前值，不做覆盖
+      if (data.pension && window.pensionApp && window.pensionApp.set) {
+        window.pensionApp.set(data.pension);
       }
 
       if (!(opt && opt.silent)) alert('导入成功');
@@ -3655,14 +4182,10 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       this.init();
     }
 
+    /* v4.7：默认不再预置示例计划。空列表由页面自带的空状态兜底，
+       用户自己添加即可；「载入示例」（?dev=1）走这里也只会得到空列表。 */
     PlansApp.prototype.getDefaultPlans = function() {
-      var now = new Date().toISOString();
-      return [
-        { id: this.genId(), name: '3年后买车', targetAmount: 120000, priority: 1, deadline: '2029-07', status: 'active', createdAt: now, note: '紧凑型轿车，含购置税' },
-        { id: this.genId(), name: '5年后买房首付', targetAmount: 600000, priority: 1, deadline: '2031-07', status: 'active', createdAt: now, note: '一线城市小户型 30% 首付' },
-        { id: this.genId(), name: '应急基金', targetAmount: 60000, priority: 2, deadline: '2027-01', status: 'active', createdAt: now, note: '6 个月生活费' },
-        { id: this.genId(), name: '日本旅行', targetAmount: 20000, priority: 3, deadline: '2027-05', status: 'paused', createdAt: now, note: '' }
-      ];
+      return [];
     };
 
     PlansApp.prototype.genId = function() {
@@ -4472,7 +4995,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       return this.askBindMode().then(function(mode) {
         if (!mode || mode === 'cancel') return;
 
-        // 先另存为：直接走「导出数据」，浏览器会存成 huasuan-backup-YYYYMMDD.json
+        // 先另存为：直接走「导出数据」，浏览器会存成 huasuan-data.json（不带日期）
         if (mode === 'backup' && window.cashflowApp) window.cashflowApp.exportData();
 
         return window.showSaveFilePicker({
@@ -4515,22 +5038,17 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     DataFileApp.prototype.writeNow = function() {
       var self = this;
       if (!this.handle) return Promise.resolve();
-      var payload = {
-        app: 'huasuan',
-        version: '4.3',
-        exportedAt: new Date().toISOString(),
-        cashflow: window.cashflowApp ? window.cashflowApp.state : null,
-        plans: window.plansApp ? window.plansApp.state : null,
-        formula: (window.__FIRE__ && window.__FIRE__.state) ? window.__FIRE__.state() : null
-      };
+      var payload = buildPayload();
       return this.handle.createWritable().then(function(writable) {
         return writable.write(JSON.stringify(payload, null, 2)).then(function() {
           return writable.close();
         });
       }).then(function() {
         self.lastSaved = new Date();
+        self.lastWriteOk = true;
         self.render('bound');
       }).catch(function(e) {
+        self.lastWriteOk = false;
         if (e && e.name === 'NotAllowedError') { self.render('reauth'); return; }
         console.warn('数据文件写入失败：', e); // 文件被占用等：静默，下次保存重试
       });
@@ -4639,6 +5157,196 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     };
 
     // ========== 启动 ==========
+    // ========== v4.6 退休金测算 ==========
+    /* 口径（中国大陆城镇职工基本养老金）：
+         基础养老金     = 计发基数 × (1 + 平均缴费指数) ÷ 2 × 缴费年限 × 1%
+         个人账户养老金 = 个人账户储存额 ÷ 计发月数
+       退休年龄按 2025-01-01 起实施的渐进式延迟法定退休年龄推算：
+         男    原 60 岁：1965-01 起出生者，每 4 个出生月延 1 个月，累计至 36 个月（63 岁）
+         女    原 55 岁：1970-01 起出生者，每 4 个出生月延 1 个月，累计至 36 个月（58 岁）
+         女    原 50 岁：1975-01 起出生者，每 2 个出生月延 1 个月，累计至 60 个月（55 岁）
+       计发月数用现行整岁表（40→233 … 70→56）；非整岁退休按相邻两档线性插值，
+       属近似值，页面上有注明。 */
+    var PEN_PAYOUT = {
+      40: 233, 41: 230, 42: 226, 43: 223, 44: 220, 45: 216, 46: 212, 47: 208,
+      48: 204, 49: 199, 50: 195, 51: 190, 52: 185, 53: 180, 54: 175, 55: 170,
+      56: 164, 57: 158, 58: 152, 59: 145, 60: 139, 61: 132, 62: 125, 63: 117,
+      64: 109, 65: 101, 66: 93,  67: 84,  68: 75,  69: 65,  70: 56
+    };
+
+    /* 返回相对原法定退休年龄延迟的月数 */
+    function penDelayMonths(sex, y, m) {
+      var ym = y * 12 + (m - 1);
+      var start, step, cap;
+      if (sex === 'male')     { start = 1965 * 12; step = 4; cap = 36; }
+      else if (sex === 'f55') { start = 1970 * 12; step = 4; cap = 36; }
+      else                    { start = 1975 * 12; step = 2; cap = 60; }
+      if (ym < start) return 0;
+      return Math.min(Math.floor((ym - start) / step) + 1, cap);
+    }
+
+    function penPayoutMonths(totalMonths) {
+      var a = Math.floor(totalMonths / 12), extra = totalMonths % 12;
+      if (a < 40) return PEN_PAYOUT[40];
+      if (a >= 70) return PEN_PAYOUT[70];
+      if (extra === 0) return PEN_PAYOUT[a];
+      var v0 = PEN_PAYOUT[a], v1 = PEN_PAYOUT[a + 1];
+      return v0 + (v1 - v0) * (extra / 12);
+    }
+
+    function PensionApp() {
+      this.storageKey = 'huasuan_pension_v1';
+      this.params = this.defaults();
+      this.loadState();
+      this.syncInputs();
+      this.bindEvents();
+      this.calc();
+    }
+
+    /* 注意：默认值是「示例」，不是对使用者的假设。页面上有明确提示要求改。 */
+    PensionApp.prototype.defaults = function() {
+      return {
+        birth: '1998-06', sex: 'male', base: 9000,
+        years: 15, index: 1, account: 120000, trans: 0
+      };
+    };
+
+    PensionApp.prototype.loadState = function() {
+      try {
+        var raw = localStorage.getItem(this.storageKey);
+        if (!raw) return;
+        var saved = JSON.parse(raw), d = this.defaults();
+        Object.keys(d).forEach(function(k) {
+          if (saved[k] !== undefined && saved[k] !== null && saved[k] !== '') d[k] = saved[k];
+        });
+        this.params = d;
+      } catch (e) { /* 损坏就退回默认值 */ }
+    };
+
+    PensionApp.prototype.saveState = function() {
+      try { localStorage.setItem(this.storageKey, JSON.stringify(this.params)); } catch (e) {}
+    };
+
+    PensionApp.prototype.state = function() { return this.params; };
+
+    /* 导入备份 / 从数据文件加载时走这里；旧备份没有 pension 段，不会覆盖当前值 */
+    PensionApp.prototype.set = function(p) {
+      if (!p || typeof p !== 'object') return;
+      var d = this.defaults();
+      Object.keys(d).forEach(function(k) { if (p[k] !== undefined) d[k] = p[k]; });
+      this.params = d;
+      this.syncInputs();
+      this.calc();
+      this.saveState();
+    };
+
+    PensionApp.prototype.syncInputs = function() {
+      var p = this.params;
+      function set(id, v) { var el = document.getElementById(id); if (el) el.value = v; }
+      set('penBirth', p.birth);
+      set('penSex', p.sex);
+      set('penBase', p.base);
+      set('penYears', p.years);
+      set('penIndex', p.index);
+      set('penAccount', p.account);
+      set('penTrans', p.trans);
+    };
+
+    PensionApp.prototype.readInputs = function() {
+      function num(id) {
+        var el = document.getElementById(id);
+        var v = el ? parseFloat(el.value) : NaN;
+        return isNaN(v) ? 0 : v;
+      }
+      var b = document.getElementById('penBirth');
+      var s = document.getElementById('penSex');
+      this.params = {
+        birth: (b && b.value) ? b.value : '',
+        sex: s ? s.value : 'male',
+        base: num('penBase'),
+        years: num('penYears'),
+        index: num('penIndex'),
+        account: num('penAccount'),
+        trans: num('penTrans')
+      };
+    };
+
+    PensionApp.prototype.bindEvents = function() {
+      var self = this;
+      ['penBirth', 'penSex', 'penBase', 'penYears', 'penIndex', 'penAccount', 'penTrans']
+        .forEach(function(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          var handler = function() { self.readInputs(); self.calc(); self.saveState(); };
+          el.addEventListener('input', handler);
+          el.addEventListener('change', handler);
+        });
+    };
+
+    PensionApp.prototype.calc = function() {
+      var p = this.params;
+      function money(n) { return '¥' + Math.round(n).toLocaleString('zh-CN'); }
+      function setText(id, t) { var el = document.getElementById(id); if (el) el.textContent = t; }
+
+      setText('penStamp', '2025 延迟退休新规口径');
+
+      var mm = /^(\d{4})-(\d{2})$/.exec(p.birth || '');
+      var totalEl = document.getElementById('penTotal');
+
+      if (!mm) {
+        ['penRetire', 'penAge', 'penLeft', 'penMonths', 'penBasic',
+         'penPersonal', 'penTransOut'].forEach(function(id) { setText(id, '—'); });
+        if (totalEl) totalEl.innerHTML = '—<small>元/月</small>';
+        setText('penRate', '—');
+        return;
+      }
+
+      var by = parseInt(mm[1], 10), bm = parseInt(mm[2], 10);
+      var delay = penDelayMonths(p.sex, by, bm);
+      var baseMonths = (p.sex === 'male') ? 720 : (p.sex === 'f55' ? 660 : 600);
+      var totalMonths = baseMonths + delay;
+      var ageY = Math.floor(totalMonths / 12), ageM = totalMonths % 12;
+
+      // 退休年月 = 出生年月 + 退休年龄月数
+      var idx = by * 12 + (bm - 1) + totalMonths;
+      var ry = Math.floor(idx / 12), rm = (idx % 12) + 1;
+
+      var payout = penPayoutMonths(totalMonths);
+      var basic = p.base * (1 + p.index) / 2 * p.years * 0.01;
+      var personal = payout > 0 ? p.account / payout : 0;
+      var extraPay = p.trans || 0;
+      var total = basic + personal + extraPay;
+
+      var now = new Date();
+      var leftM = idx - (now.getFullYear() * 12 + now.getMonth());
+      var leftTxt = leftM <= 0
+        ? '已到退休年龄'
+        : (Math.floor(leftM / 12) + ' 年 ' + (leftM % 12) + ' 个月');
+
+      setText('penRetire', ry + ' 年 ' + rm + ' 月');
+      setText('penAge', ageY + ' 岁' + (ageM ? ' ' + ageM + ' 个月' : '') +
+        (delay ? '（延 ' + delay + ' 个月）' : ''));
+      setText('penLeft', leftTxt);
+      setText('penMonths', (Math.round(payout * 10) / 10) + ' 个月');
+      setText('penBasic', money(basic));
+      setText('penPersonal', money(personal));
+      setText('penTransOut', money(extraPay));
+      if (totalEl) totalEl.innerHTML = money(total) + '<small>元/月</small>';
+      setText('penRate', p.base > 0 ? (total / p.base * 100).toFixed(1) + '%' : '—');
+
+      var warn = document.getElementById('penWarn');
+      if (warn) {
+        var msgs = [];
+        if (p.years < 15) {
+          msgs.push('累计缴费不满 15 年，暂不符合按月领取基本养老金的条件：需延缴至满 15 年，或按当地规定处理。');
+        }
+        if (p.base <= 0) msgs.push('计发基数还是 0，结果没有意义。请填退休所在地上年度全口径月平均工资。');
+        if (p.index > 3 || p.index < 0.4) msgs.push('平均缴费指数通常在 0.6–3.0 之间，当前值偏离较大，请确认。');
+        warn.hidden = msgs.length === 0;
+        warn.innerHTML = msgs.join('<br>');
+      }
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
       // v3.11：示例按钮仅测试可见 — URL 带 ?dev=1 时显示（见 doc/plans/task_plan.md 执行说明）
       if (new URLSearchParams(location.search).get('dev') === '1') {
@@ -4649,7 +5357,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
       }
 
       // v3.16：saveState 钩子 — 实例化前打补丁，之后每次保存状态都同步到绑定的数据文件
-      ['CashflowApp', 'PlansApp'].forEach(function(name) {
+      ['CashflowApp', 'PlansApp', 'PensionApp'].forEach(function(name) {
         var orig = window[name].prototype.saveState;
         window[name].prototype.saveState = function() {
           var r = orig.call(this);
@@ -4664,6 +5372,9 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
 
       // v3.16：本地数据文件（内部自检 showSaveFilePicker，不支持时 fileBar 保持 hidden）
       window.dataFileApp = new DataFileApp();
+
+      // v4.6：退休金测算（参数存 huasuan_pension_v1，随备份一起导入导出）
+      window.pensionApp = new PensionApp();
 
       var observer = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
