@@ -1484,6 +1484,14 @@
   box-shadow:0 6px 20px rgba(0,0,0,.16);white-space:normal;font-family:var(--font-sans-cn);
 }
 .q.on::after,.q:hover::after{opacity:1;transform:translateX(-50%) translateY(0)}
+/* v4.10 字段旁的信息图标：默认以图标为中心展开，字段靠左时提示框会顶出卡片右边界
+   （手机上尤其明显）。改成以「字段左边缘」为基准——图标本身退出定位上下文，
+   提示框锚到 .pen__f / .pen__row 上，这样任何宽度下都与字段左对齐 */
+.pen__f,.pen__row{position:relative}
+.q--r{position:static}
+.q--r::after{left:0;transform:translateY(3px)}
+.q--r.on::after,.q--r:hover::after{transform:translateY(0)}
+.pen__lab .q,.pen__k .q{vertical-align:-2px;margin-left:5px}
 
 /* ---------- 来源表 ---------- */
 details.src{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:18px}
@@ -1537,6 +1545,8 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
 @media (max-width:1100px){
   /* 算式进入横向滚动后浮层会被裁切，改由点击 ? 在下方提示条里显示 */
   .q::after{display:none}
+  /* v4.10：退休金字段在卡片里、不横向滚动，浮层不会被裁，手机上也保留 ⓘ 提示 */
+  .pen__f .q::after,.pen__row .q::after{display:block}
 }
 
     /* ================= v4.0 仪表盘：倒计时 / 三宫格 / 资产负债 ================= */
@@ -2339,15 +2349,15 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
                 <input type="number" id="penYears" class="pen__in" min="0" max="50" step="0.5" inputmode="decimal">
               </label>
               <label class="pen__f">
-                <span class="pen__lab">平均缴费指数 <em>0.6–3.0</em></span>
+                <span class="pen__lab">平均缴费指数 <em>0.6–3.0</em><span class="q q--r" data-tip="历年「缴费基数 ÷ 当年全省平均工资」，按缴费月数加权平均。0.6 是最低档，1.0 与社平齐平，3.0 封顶。基础养老金里按 (1+指数)÷2 折算：0.6 折成 0.80，3.0 也只折成 2.00——多缴回报递减。">i</span></span>
                 <input type="number" id="penIndex" class="pen__in" min="0.4" max="3" step="0.01" inputmode="decimal">
               </label>
               <label class="pen__f">
-                <span class="pen__lab">个人账户储存额（元）</span>
+                <span class="pen__lab">个人账户储存额（元）<span class="q q--r" data-tip="个人缴的 8% 全进这个账户，每年按记账利率计息，退休时 ÷ 计发月数按月发。查询：电子社保卡、国家社保公共服务平台、12333。这里是截至今天的余额，本页按不再增长算，结果是下限。">i</span></span>
                 <input type="number" id="penAccount" class="pen__in" min="0" step="1000" inputmode="decimal">
               </label>
               <label class="pen__f" style="grid-column:1/-1">
-                <span class="pen__lab">过渡性养老金（元/月，仅「中人」有；没有填 0）</span>
+                <span class="pen__lab">过渡性养老金（元/月）<span class="q q--r" data-tip="只有 1996 年前参加工作的「中人」才有：那段没建个人账户的年限被「视同缴费」，要单独补一块。各省公式不同，填社保核定好的月度金额即可。改革后参加工作的「新人」填 0，不影响另外两块。">i</span></span>
                 <input type="number" id="penTrans" class="pen__in" min="0" step="10" inputmode="decimal">
               </label>
             </div>
@@ -2381,7 +2391,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
                 <span class="pen__v" id="penMonths">—</span>
               </div>
               <div class="pen__row">
-                <span class="pen__k">基础养老金</span>
+                <span class="pen__k">基础养老金<span class="q q--r" data-tip="计发基数 × (1+平均缴费指数) ÷ 2 × 缴费年限 × 1%。计发基数 = 退休所在地上年度全口径城镇单位就业人员月平均工资，每年由当地人社局公布。">i</span></span>
                 <span class="pen__v" id="penBasic">—</span>
               </div>
               <div class="pen__row">
@@ -3232,7 +3242,7 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
     function buildPayload() {
       return {
         app: 'huasuan',
-        version: '4.9',
+        version: '4.10',
         exportedAt: new Date().toISOString(),
         cashflow: window.cashflowApp ? window.cashflowApp.state : null,
         plans: window.plansApp ? window.plansApp.state : null,
@@ -5607,7 +5617,9 @@ table.src-t .tag.hard{background:#EEF3EE;color:#4F6B52}
         for(var z = 0; z < qs.length; z++) qs[z].classList.remove("on");
         if(!was){
           this.classList.add("on");
-          if(window.matchMedia("(max-width:1100px)").matches){
+          /* ≤1100px 时浮层被隐藏，算式区的 ? 改写到下方的 #fxNote 提示条；
+             v4.10 退休金字段的 ⓘ 自带浮层，不能再往算式那条提示条里塞内容 */
+          if(window.matchMedia("(max-width:1100px)").matches && this.closest(".fx-card")){
             $("fxNote").innerHTML = this.getAttribute("data-tip");
             $("fxNote").className = "fx-note";
           }
