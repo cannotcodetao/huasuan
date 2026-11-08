@@ -141,17 +141,15 @@ def build_section(data: dict, total: int) -> str:
     ]
     tips_html = "".join(f"<li>{html.escape(t)}</li>" for t in tips)
 
-    return f'''  <!-- ========== v4.8 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
+    return f'''  <!-- ========== v4.9 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
   <div class="layout-center srblock">
-    <div class="col-head">
+    <div class="col-head col-head--inline">
       <h2 class="col-head__title">股东回馈</h2>
-      <span class="col-head__eyebrow">SHAREHOLDER PERKS</span>
+      <p class="sr__lead">
+        A股 / 港股 / 台股上市公司给股东发的伴手礼、专属优惠与体验型回馈。
+        共收录 <b id="srTotal">0</b> 条，按性价比评级排序，点开对应市场展开明细。
+      </p>
     </div>
-
-    <p class="sr__lead">
-      A股 / 港股 / 台股上市公司给股东发的伴手礼、专属优惠与体验型回馈。
-      共收录 <b id="srTotal">0</b> 条，按性价比评级排序，点开对应市场展开明细。
-    </p>
 
     <div class="sr__disc">
       <b>不构成投资建议，不承诺收益。</b>
