@@ -128,6 +128,9 @@ def main() -> int:
         page = pat.sub("\n" + section.strip("\n") + "\n\n", page, count=1)
     TARGET.write_text(page, encoding="utf-8")
     print(f"已写入 {TARGET}（{len(section):,} 字符）")
+    print("⚠️ 源表里的成本与评级是旧值，接着跑这两步，否则会把修正冲掉：")
+    print("   python _tools/recalc_cost.py --write")
+    print("   python _tools/recalc_rating.py --write")
     return 0
 
 
@@ -202,6 +205,9 @@ def build_section(data: dict, total: int) -> str:
       <br>「最低入场成本」按 <b>{AS_OF}</b> 收盘价 × 门槛股数计算（门槛写「全体股东」的，按最小买入单位 100 股计），精确到元：
       A股最低 5 元佣金未计入；港股碎股市值仅数港元，按市值 + 单边最低佣金 50 港元计。
       股价类数字必须可复现，故单独标明确切基准日；其余信息的时点仍以各条公告为准。
+      <br>「性价比评级」= 礼品价值中位数 ÷ 最低入场成本：占比 > 2% 从「高」起评；
+      门槛超 100 股、需要到现场、只是折扣权，各降一档（景区免票、游轮晚宴这类「到场即回馈」的不按到场降档）；
+      门槛 ≥ 1000 股、占比 < 0.5%、活动已停办或名不副实，直接评「低」；价值无法量化的记「待核实」。
       </p>
     </div>
   </div>
