@@ -20,6 +20,10 @@ SRC = Path(r"C:/Users/24237/Downloads/股东回馈.html")
 TARGET = Path(__file__).resolve().parent.parent / "index.html"
 MARK = "<!-- ==== SR_SECTION_PLACEHOLDER ==== -->"
 
+# 成本列的股价基准日。必须与 _tools/recalc_cost.py 顶部的 AS_OF 一致，
+# 否则页尾注写的日期和表里的数字对不上（那就是新的假话）。
+AS_OF = "2026-11-09"
+
 COLS = {
     "a": ["公司名称", "代码", "行业", "伴手礼内容", "大致价值", "最低持股门槛",
           "最低入场成本", "领取方式", "历史变化", "性价比评级", "来源"],
@@ -116,10 +120,12 @@ def main() -> int:
         page = page.replace(MARK, section)
     else:
         # 二次及以后：原地替换已生成的整块，保证脚本可反复执行
-        pat = re.compile(r"\n[ \t]*<!-- =+ v4\.\d+ 股东回馈.*?\n[ \t]*</script>", re.S)
+        # 注意两处：pattern 末尾吃掉原有空行、替换串自己补一个空行，
+        # 这样重复跑不会一次次把空行叠起来（旧版会，跑两次多两行）
+        pat = re.compile(r"\n[ \t]*<!-- =+ v4\.\d+ 股东回馈.*?\n[ \t]*</script>\n*", re.S)
         if not pat.search(page):
             raise SystemExit("找不到占位符，也找不到已生成的股东回馈区块")
-        page = pat.sub("\n" + section, page, count=1)
+        page = pat.sub("\n" + section.strip("\n") + "\n\n", page, count=1)
     TARGET.write_text(page, encoding="utf-8")
     print(f"已写入 {TARGET}（{len(section):,} 字符）")
     return 0
@@ -135,13 +141,13 @@ def build_section(data: dict, total: int) -> str:
         "优先选择「可邮寄 + 低门槛 + 价值明确」的活动，如恒顺醋业、仲景食品、盖世食品。",
         "警惕折扣权陷阱：参与折扣类活动前，务必先对比主流电商平台实际到手价（五粮液案例）。",
         "注意隐性门槛：华大基因要求持股满1年，陈克明食品要求7000股以上，得利斯要求15000股以上。",
-        "港股碎股佣金可能远高于A股最低5元，奈雪的茶4股参会需单独核算买卖佣金成本。",
+        "港股碎股佣金远高于A股最低5元：奈雪的茶 4 股市值不到 3 港元，来回佣金可能上百港元，上表成本只计了单边 50 港元。",
         "台股零股领取需注意最后买进日、电子投票、代领规则，部分公司要求亲自出席。",
         "历史连续性比单次活动更重要，警惕礼品缩水与活动取消，不应将伴手礼作为持仓理由。",
     ]
     tips_html = "".join(f"<li>{html.escape(t)}</li>" for t in tips)
 
-    return f'''  <!-- ========== v4.9 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
+    return f'''  <!-- ========== v4.11 股东回馈（数据来自公开信息整理，样式按划算设计系统重做） ========== -->
   <div class="layout-center srblock">
     <div class="col-head col-head--inline">
       <h2 class="col-head__title">股东回馈</h2>
@@ -193,6 +199,9 @@ def build_section(data: dict, total: int) -> str:
       证券时报、中国证券报、上海证券报、新华财经、中时新闻网等公开渠道。
       各条来源见表格「来源」列；✅ 可直接访问 · ⚠️ 需站内搜索 · ❌ 已失效。
       <br>本区块为公开信息整理，数据时点以各条来源的公告日期为准，本页不另行标注「截至今日」。
+      <br>「最低入场成本」按 <b>{AS_OF}</b> 收盘价 × 门槛股数计算（门槛写「全体股东」的，按最小买入单位 100 股计），精确到元：
+      A股最低 5 元佣金未计入；港股碎股市值仅数港元，按市值 + 单边最低佣金 50 港元计。
+      股价类数字必须可复现，故单独标明确切基准日；其余信息的时点仍以各条公告为准。
       </p>
     </div>
   </div>
